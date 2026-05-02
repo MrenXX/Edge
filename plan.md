@@ -1,8 +1,8 @@
 # Re·Tech Fusion — Implementation plan (Eco-Edge / ADWYA)
 
-**Purpose:** A new agent or teammate with **no chat history** can read **only this file** (plus the repo spec files the human attaches) and understand scope, priorities, architecture, and scoring alignment.
+**Purpose:** Onboarding for whoever picks this up mid-hackathon: what’s in the tree, Part 1 vs rest, where the rubric lives.
 
-**Team:** 3 members (challenge allows up to 5). **Product codename:** Eco-Edge.
+**Team:** 3 people, project name **Eco-Edge**.
 
 ---
 
@@ -16,7 +16,7 @@
 | [plan_alpha.md](plan_alpha.md) | Earlier **narrative draft** (MQTT, buffer, Streamlit idea). Some hardware text is **outdated**—this `plan.md` **supersedes** hardware and JSON decisions. |
 | [grill-me.md](grill-me.md) | Optional process: resolve ambiguous design choices **one question at a time** with the human. |
 
-If any of the above are missing, ask the human to add them before changing challenge-facing behavior.
+If a spec file is missing from the clone, grab it from the team drive before changing scoring-related behaviour.
 
 ---
 
@@ -28,7 +28,7 @@ If any of the above are missing, ask the human to add them before changing chall
 
 ## 2. Condensed rubric (from cahier — verify in source file)
 
-**Part 1 (IoT):** functional delivery (30) · multi-sensor coordination (25) · protocol/security incl. reconnect/TLS optional (15) · uptime in 5-min windows (15) · data quality (10) · bonus innovation +15 (e.g. device-side buffering). Prefer **≥3 distinct sensor types** simultaneously with correct units.
+**Part 1 (IoT):** functional (30) · multi-sensor (25) · protocol incl. reconnect; **TLS or HTTPS optional** on that 15-pt line per cahier — not implemented in current Wokwi sketch (plain MQTT 1883) · uptime 5‑min windows (15) · data quality (10) · +15 bonus (buffering, etc.).
 
 **Part 2:** document extraction (40) · unit normalization (25) · CO₂ quality (15) · dashboard (20) · Docker + API docs (20) · optional anomaly +15 · optional innovation +25.
 
@@ -50,10 +50,10 @@ If any of the above are missing, ask the human to add them before changing chall
 
 ### 4.1 Priority: core Part 1 first
 
-1. **Bring up ESP32 + DS3231 (RTC) + MPU-6050 (I²C)** until readings are stable (timestamps, accel, gyro, temperature).
-2. **MQTT** to a broker with a **frozen JSON schema** (section 7).
-3. **Reconnect + ring buffer** (innovation / continuity).
-4. **Part 3** edge model and LEDs once the loop is reliable.
+1. Wokwi / ESP32: **DS1307** + **MPU6050** + MQTT + JSON (see repo root `sketch.ino`).
+2. Frozen JSON shape (plan §7).
+3. Reconnect + ring buffer in firmware.
+4. Part 3 edge + LEDs once telemetry boring.
 
 **Do not block Part 1 on optional hardware.** Optional pieces plug in later (section 8).
 
@@ -84,7 +84,7 @@ This satisfies “distinct sensor types” as **three physical quantities** with
 
 | Path | Responsibility |
 |------|----------------|
-| `edge/` | ESP32 firmware: MPU, DS3231, MQTT, ring buffer, Part 3 model, LEDs. |
+| `edge/` | Optional future folder; **today** firmware lives in repo root `sketch.ino` (Wokwi / ESP32). |
 | `pipeline/` | Document extract, normalize to kWh, CO₂, forecast, submissions, API, `Dockerfile`. |
 | `dashboard/` | UI only (e.g. Streamlit): pipeline HTTP + live MQTT; **no** document parsing here. |
 | **Root** | `README.md`, `docker-compose.yml`, demo script, optional `DECISIONS.md` for overrides. |
@@ -96,8 +96,8 @@ This satisfies “distinct sensor types” as **three physical quantities** with
 | Topic | Decision |
 |-------|----------|
 | Transport | **MQTT** topic pattern `telemetry/{device_id}` (Mosquitto, often in Docker). |
-| Timestamps | **DS3231** is the authority for the JSON `timestamp`; **sync from NTP** when Wi-Fi works, then write RTC. Document timezone (e.g. Africa/Tunis). |
-| Broker / TLS | **Mosquitto in docker-compose** on demo laptop; add **MQTTS** (self-signed) if time before Part 1 deadline, else plain MQTT + README “TLS roadmap.” |
+| Timestamps | **DS1307** in Wokwi build (see `sketch.ino`); JSON `timestamp` from RTC. NTP sync optional if you add it. |
+| Broker / crypto | **Shipped:** plain **MQTT:1883** in Wokwi sketch (no TLS). Optional later: MQTTS to Mosquitto, or HTTPS if you add a REST path — cahier bundles TLS/HTTPS as optional protocol credit, not mandatory. |
 | Part 2 extraction | **Hybrid:** structured parsers for Excel/PDF text where possible; **OCR + rules** for scans; **LLM vision** only as pinned fallback (model + prompt version in repo). |
 | Compose | `docker compose up` brings **broker + pipeline API** (+ optional DB); dashboard in compose or documented “run on host” on same network. |
 | Part 3 | **Track A** primary. **Track B** only as thin appendix if Part 2 mandatory path is done (section 12). |
@@ -228,13 +228,13 @@ If Part 2 core is done: `docs/heat_recovery.md` (or similar) + **three** scenari
 
 ---
 
-## 16. Contradictions resolved (for agents reading old docs)
+## 16. Stale bits in old notes vs this repo
 
-| Old text | This plan |
-|----------|-----------|
-| [plan_alpha.md](plan_alpha.md) Scenario B: only vibration + temp, or drop HW-072 | **Invalid for rubric:** must include **gyro** (or a third modality). **Lux dropped entirely.** |
-| plan_alpha: LLM-only for all scans | Prefer **hybrid** for reproducibility and Docker (section 6). |
-| plan_alpha: K-means only for Part 3 | Add **small predictor** for MAE row (section 10). |
+| Old text | Reality here |
+|----------|----------------|
+| [plan_alpha.md](plan_alpha.md) Scenario B: only vibration + temp | Need gyro + temp (+ pot) for “3 types”; lux dropped. |
+| plan_alpha LLM-only scans | Part 2: hybrid parsers when you get there. |
+| plan_alpha K-means only Part 3 | Add a tiny predictor if you chase MAE. |
 
 ---
 

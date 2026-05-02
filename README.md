@@ -1,118 +1,104 @@
 # Edge — Eco-Edge (Re·Tech Fusion Part 1)
 
-Hackathon **Re·Tech Fusion** (INSAT) — **Part 1: IoT device & protocol**.  
-Physical ESP32 was unavailable; this repo implements an **approved Wokwi simulation** (virtual ESP32 + real schematic) that publishes the same **MQTT JSON** the Part 2 pipeline expects.
+INSAT **Re·Tech Fusion** — Part 1 (IoT + protocol). Real board died mid-prep; we run the same firmware in **Wokwi** and ship JSON over MQTT so Part 2 can still ingest it.
 
-**Remote:** [https://github.com/MrenXX/Edge](https://github.com/MrenXX/Edge)
-
----
-
-## What’s in this repo
-
-| File | Purpose |
-|------|---------|
-| [diagram.json](diagram.json) | Wokwi circuit: ESP32 DevKit-C, **MPU6050** (I²C **0x69**, AD0→3V3), **DS1307** RTC (0x68), **potentiometer** on GPIO34, **green LED** GPIO4 / **red** GPIO2 with 220 Ω series resistors |
-| [sketch.ino](sketch.ino) | Arduino firmware: sensors → JSON → **MQTT**; **WiFi** `Wokwi-GUEST`; **ring buffer** when offline / publish fail |
-| [libraries.txt](libraries.txt) | Wokwi / Arduino Library Manager dependencies |
-| [WOKWI.md](WOKWI.md) | Step-by-step: open project, libraries, WiFi, MQTT troubleshooting |
-| [LIVE_DEMO.md](LIVE_DEMO.md) | `mosquitto_sub` log commands, buffer demo hint, **live demo script** |
-| [plan.md](plan.md) | Full hackathon plan (Parts 1–3 + rubric notes) |
-| [cahier_de_charge.md](cahier_de_charge.md) | Official challenge spec (source of rubric) |
-| [rapport_audit.md](rapport_audit.md), [example_images_data_factures_et_diverses.md](example_images_data_factures_et_diverses.md) | Factory / dataset context for Part 2 |
+Repo: [github.com/MrenXX/Edge](https://github.com/MrenXX/Edge)
 
 ---
 
-## Quick start (Wokwi)
+## Files
 
-1. [wokwi.com](https://wokwi.com) → new **ESP32** project.  
-2. Copy **`diagram.json`**, **`sketch.ino`**, **`libraries.txt`** into the project (same folder).  
-3. Add libraries from **`libraries.txt`** (or use Wokwi Library Manager).  
-4. **Simulate** — Serial **115200** baud.
-
-Details: **[WOKWI.md](WOKWI.md)**.
+| File | What it is |
+|------|------------|
+| [diagram.json](diagram.json) | Wokwi: ESP32 DevKit-C, MPU6050 @ **0x69** (AD0→3V3), DS1307, pot → GPIO34, green LED 4 / red 2 + 220Ω |
+| [sketch.ino](sketch.ino) | Arduino: read sensors, build JSON, MQTT; small ring buffer if broker drops |
+| [libraries.txt](libraries.txt) | Library names for Wokwi / Arduino |
+| [WOKWI.md](WOKWI.md) | How to open sim, fix libs, WiFi/MQTT gotchas |
+| [LIVE_DEMO.md](LIVE_DEMO.md) | `mosquitto_sub`, logging to disk, demo order |
+| [plan.md](plan.md) | Rest of hackathon (P2/P3) — still the master plan |
+| [cahier_de_charge.md](cahier_de_charge.md) | Official spec |
+| [rapport_audit.md](rapport_audit.md), [example_images_data_factures_et_diverses.md](example_images_data_factures_et_diverses.md) | ADWYA context for later parts |
 
 ---
 
-## MQTT configuration (default)
+## Wokwi quick run
 
-| Setting | Value |
-|--------|--------|
-| WiFi (browser sim) | SSID `Wokwi-GUEST`, password *(empty)* |
-| Broker | `broker.hivemq.com` port **1883** |
+1. [wokwi.com](https://wokwi.com) → new ESP32 project  
+2. Drop in `diagram.json`, `sketch.ino`, `libraries.txt`  
+3. Add libs (see `libraries.txt` or WOKWI)  
+4. Simulate, Serial **115200**
+
+More detail: [WOKWI.md](WOKWI.md)
+
+---
+
+## MQTT defaults
+
+| | |
+|--|--|
+| WiFi (sim) | `Wokwi-GUEST` / empty password |
+| Broker | `broker.hivemq.com` **:** `1883` |
 | Topic | `telemetry/ADWYA-CHILLER-01` |
-| Device ID in JSON | `ADWYA-CHILLER-01` |
 
-To use **your own Mosquitto** on a PC, use [Wokwi Private IoT Gateway](https://docs.wokwi.com/guides/esp32-wifi) and set `MQTT_HOST` in `sketch.ino` to that PC’s LAN IP.
+**Not encrypted:** traffic is **plain MQTT** on port 1883 (no TLS on the wire). The cahier lists TLS/HTTPS as *optional* for the protocol row — we didn’t implement them to save time. GitHub / doc URLs use `https://`; that’s normal for the web, **not** the same as encrypting this MQTT stream.
 
----
-
-## JSON payload (every ~2 s)
-
-One line per publish, UTF-8 JSON:
-
-- **`timestamp`** — from **DS1307** (ISO-like string with `+01:00`; adjust in code if needed)  
-- **`device_id`** — `ADWYA-CHILLER-01`  
-- **`sensors`:** `accel_x_g`, `accel_y_g`, `accel_z_g` (g), `gyro_x_dps`… (°/s), `temp_c` (°C), `current_amps` (mapped from **ADC pot** 0–20 A proxy)  
-- **`edge_anomaly`** — `true` when vibration / gyro / “current” exceeds thresholds (see sketch)  
-- **`meta`:** `fw`, `uptime_s`
+Own broker on LAN: Wokwi [Private IoT Gateway](https://docs.wokwi.com/guides/esp32-wifi) + change `MQTT_HOST` in the sketch.
 
 ---
 
-## Ring buffer (Part 1 **bonus innovation** — device-side buffering)
+## JSON (roughly every 2 s)
 
-Implemented in [sketch.ino](sketch.ino):
-
-- **8 × 768 byte** FIFO in RAM.  
-- **`ringPush`:** MQTT disconnected **or** `publish()` fails → message queued; Serial `[buffer] queued`.  
-- **`ringFlush`:** after **MQTT connect** and while connected in `loop()` — publishes **oldest first**; Serial `[buffer] flushed`.  
-- If buffer full, **oldest dropped** (`dropped oldest`).
+- `timestamp` — DS1307 (+01:00 string in code)  
+- `device_id`  
+- `sensors`: accel (g), gyro (°/s), temp (°C), `current_amps` from pot mapping 0–20 A (demo proxy)  
+- `edge_anomaly` — simple thresholds on motion / “amps”  
+- `meta`: fw string, uptime_s  
 
 ---
 
-## Verify on a second machine (30 pt “server receives data”)
+## Ring buffer (hackathon bonus line)
 
-Subscribe (needs [Eclipse Mosquitto](https://mosquitto.org/) client or equivalent):
+8 slots × 768 bytes. Push when MQTT down or publish fails; flush FIFO oldest-first after reconnect. Serial prints `[buffer] queued` / `flushed`.
+
+---
+
+## Prove “server gets it” (30 pts line)
+
+Second machine:
 
 ```bash
 mosquitto_sub -h broker.hivemq.com -p 1883 -t 'telemetry/#' -v
 ```
 
-Log to file (commands for bash / PowerShell / CMD): **[LIVE_DEMO.md](LIVE_DEMO.md)** §1.
+Log to file: [LIVE_DEMO.md](LIVE_DEMO.md) §1.
 
 ---
 
-## Rubric alignment (Part 1 — summary)
+## Part 1 rubric (short)
 
-| Criterion | How this repo supports it |
-|-----------|-----------------------------|
-| Delivered & functional | Stable MQTT JSON to a **participant PC** via public broker (or your broker + Private Gateway) |
-| Multi-sensor | **Accel, gyro, temp** (MPU6050) + **current proxy** (pot), same payload |
-| Protocol | WiFi + MQTT **reconnect**; `mqtt.loop()` around traffic |
-| Uptime / continuity | Steady ~2 s cadence + **optional** long `mosquitto_sub` log for 5‑min window evidence |
-| Data quality | Plausible ranges; no `-999`; no fake nulls for required numerics |
-| Bonus innovation | **RAM ring buffer** + README + demo script |
-
----
-
-## Live demo — showcase order (~3–5 min)
-
-Use this order in front of jury / camera (full detail: **[LIVE_DEMO.md](LIVE_DEMO.md)** §3).
-
-1. **Wokwi** sim running + **Serial** @ 115200 — show JSON every ~2 s.  
-2. **Second laptop** — `mosquitto_sub` (or **log file**) proving same JSON on the network.  
-3. **Interact** — change MPU / pot in Wokwi; JSON updates; **red LED** when `edge_anomaly: true`.  
-4. **Buffer (optional ~60 s)** — break path / disconnect → Serial `queued` → restore → `flushed` + subscriber burst.  
-5. **One slide or README tab** — topic, broker, four channels + units, “Wokwi digital twin / staff-approved sim”.
+| Row | How we argue it |
+|-----|-----------------|
+| Works | Laptop runs `mosquitto_sub`, sees JSON on schedule |
+| Multi-sensor | accel + gyro + temp + pot “amps”, one payload |
+| Protocol | reconnect + `mqtt.loop`; **no** TLS in this branch |
+| Uptime | long run + log file; count 5‑min windows if they ask |
+| Data quality | no -999, sane ranges |
+| +bonus | RAM buffer |
 
 ---
 
-## Build / flash notes
+## Live demo (3–5 min)
 
-- **Wokwi:** no USB flash; simulate in browser or VS Code extension.  
-- **Real ESP32:** same `sketch.ino` targets **GPIO 21/22** I²C, **34** ADC, **4/2** LEDs; copy `diagram.json` wiring to breadboard; set WiFi credentials and broker in code.
+Same table as [LIVE_DEMO.md](LIVE_DEMO.md) §3: Wokwi + Serial → second PC subscriber → wiggle MPU/pot / red LED → optional buffer stunt → one slide with topic + broker.
 
 ---
 
-## License / hackathon
+## Real hardware
 
-Original team work for Re·Tech Fusion. Third-party libs: **Arduino-ESP32**, **PubSubClient**, **RTClib**, **Adafruit MPU6050**, **Adafruit Unified Sensor** — see each library’s license.
+Same pins if you flash a physical ESP32: I²C 21/22, pot 34, LEDs 4 & 2. Put your WiFi + broker in the sketch.
+
+---
+
+## License
+
+Team code for the competition. Libs: Arduino-ESP32, PubSubClient, RTClib, Adafruit MPU6050 + Unified Sensor — their licenses apply.

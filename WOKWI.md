@@ -1,7 +1,6 @@
-# Wokwi — exact steps (Eco-Edge Part 1)
+# Wokwi — how we run Part 1
 
-This folder is a **Wokwi Arduino** project: [diagram.json](diagram.json) + [sketch.ino](sketch.ino) + [libraries.txt](libraries.txt).  
-**Overview & rubric mapping:** see [README.md](README.md).
+Project = [diagram.json](diagram.json) + [sketch.ino](sketch.ino) + [libraries.txt](libraries.txt). Bigger picture: [README.md](README.md).
 
 ## 1. Create or open the project on Wokwi
 
@@ -47,6 +46,8 @@ Default in `sketch.ino`:
 
 - `MQTT_HOST` = `broker.hivemq.com` (anonymous MQTT, good for “does it publish?”).
 
+That’s **TCP port 1883, cleartext MQTT** — not MQTTS, not HTTPS. Fine for the hackathon smoke test; TLS was skipped on purpose.
+
 **To hit your own Mosquitto:**
 
 1. Install [Wokwi Private IoT Gateway](https://docs.wokwi.com/guides/esp32-wifi#private-gateway) on your PC.
@@ -81,7 +82,7 @@ Default in `sketch.ino`:
 - **WiFi stuck:** SSID must be exactly `Wokwi-GUEST` in the default public sim.
 - **MQTT never connects:** try `broker.hivemq.org` vs `broker.hivemq.com` per current HiveMQ docs, or switch to `test.mosquitto.org`.
 
-We cannot run Wokwi from Cursor; if you paste **Serial output** or **compiler errors**, we can adjust the sketch.
+We can’t run Wokwi from here — paste Serial or compiler errors if stuck.
 
 ## 8. MQTT log file + jury demo script
 

@@ -31,14 +31,11 @@ mosquitto_sub -h broker.hivemq.com -p 1883 -t telemetry/# -v > ecoedge_telemetry
 
 ---
 
-## 2) What changed in firmware (bonus buffer)
+## 2) Ring buffer (bonus)
 
-[sketch.ino](sketch.ino) now has a **small RAM ring (8 × 768 bytes)**:
+In [sketch.ino](sketch.ino): **8 × 768 byte** ring. MQTT down or `publish()` fails → line goes to RAM, Serial prints `[buffer] queued`. After link back, `ringFlush()` spits oldest first → `[buffer] flushed`.
 
-- If **MQTT is disconnected** or **`publish()` fails**, the JSON line is **`[buffer] queued`** instead of dropped.
-- On **reconnect**, **`ringFlush()`** publishes **oldest first**; Serial shows **`[buffer] flushed`**.
-
-**Demo stunt (30–60 s):** pause/stop internet path (or disconnect broker side if you control it) → watch Serial for `queued` → restore → watch `flushed` and subscriber catching burst + live lines.
+Quick demo: kill path / wait for drops → `queued` → bring it back → burst on `mosquitto_sub`.
 
 ---
 
@@ -50,7 +47,7 @@ mosquitto_sub -h broker.hivemq.com -p 1883 -t telemetry/# -v > ecoedge_telemetry
 | 2 | **Second PC** `mosquitto_sub` or **log file** | Same payloads arriving |
 | 3 | **Move MPU / pot** | JSON fields change; **red LED** on `edge_anomaly` |
 | 4 | **Buffer** (optional 60 s) | Serial: `queued` then after restore `flushed`; subscriber sees backlog |
-| 5 | **README / slide** | Topic, broker, “Wokwi + staff-approved sim”, **four sensor channels** + units |
+| 5 | **Slide or README** | topic, broker, 4 channels + units, “Wokwi sim staff OK’d” |
 
 ---
 

@@ -1,15 +1,8 @@
-/**
- * Eco-Edge — Wokwi / ESP32 Part 1 telemetry
- *
- * Hardware (see diagram.json):
- *   I2C: SDA=21, SCL=22 — DS1307 @ 0x68, MPU6050 @ 0x69 (AD0 tied to 3V3)
- *   Pot SIG → GPIO34 (ADC, "current" proxy)
- *   LEDs: green GPIO4, red GPIO2 (active HIGH, series resistors on board)
- *
- * WiFi (Wokwi browser sim): SSID "Wokwi-GUEST", password ""
- * MQTT: change MQTT_HOST / MQTT_TOPIC / DEVICE_ID below.
- * Optional: small RAM ring queues JSON when MQTT is down or publish fails; drained on reconnect.
- */
+/*
+  Eco-Edge — INSAT Re·Tech Fusion, Part 1
+  Wokwi: MPU6050 @ 0x69, DS1307, pot on 34 as rough "amps", LEDs 4 (green) / 2 (red).
+  MQTT JSON every ~2s; ring buffer if broker drops.
+*/
 
 #define MQTT_MAX_PACKET_SIZE 2048
 
@@ -24,34 +17,26 @@
 #include <cmath>
 #include <cstring>
 
-// ---------------------------------------------------------------------------
-// Small offline MQTT queue (Part 1 bonus: device-side buffering on disconnect)
-// ringPush / ringFlush live after MQTT_TOPIC and `mqtt` are declared below.
-// ---------------------------------------------------------------------------
+// backlog when mqtt dies or publish() fails (hackathon bonus)
 static const int RING_SLOTS = 8;
 static const int RING_MSG = 768;
 static char ringBuf[RING_SLOTS][RING_MSG];
 static int ringHead = 0;
 static int ringCount = 0;
 
-// ---------------------------------------------------------------------------
-// Wiring (must match diagram.json)
-// ---------------------------------------------------------------------------
+// pins = diagram.json
 static const int PIN_I2C_SDA = 21;
 static const int PIN_I2C_SCL = 22;
-static const uint8_t MPU_I2C_ADDR = 0x69;  // AD0 -> 3V3
+static const uint8_t MPU_I2C_ADDR = 0x69;  // AD0 pulled high
 
 static const int PIN_LED_GREEN = 4;
 static const int PIN_LED_RED = 2;
 static const int PIN_POT_ADC = 34;
 
-// ---------------------------------------------------------------------------
-// Network — edit for your laptop / Mosquitto when using Private IoT Gateway
-// ---------------------------------------------------------------------------
+// change for your wifi / broker
 static const char *WIFI_SSID = "Wokwi-GUEST";
 static const char *WIFI_PASSWORD = "";
 
-/** Public broker (works with Wokwi public internet). */
 static const char *MQTT_HOST = "broker.hivemq.com";
 static const uint16_t MQTT_PORT = 1883;
 static const char *MQTT_TOPIC = "telemetry/ADWYA-CHILLER-01";
@@ -79,7 +64,6 @@ static void ringPush(const char *msg) {
   Serial.printf("[buffer] queued (%d in buffer)\n", ringCount);
 }
 
-/** Drain oldest-first after reconnect (rubric: continuity / no-loss narrative). */
 static void ringFlush() {
   while (mqtt.connected() && ringCount > 0) {
     const char *msg = ringBuf[ringHead];
@@ -138,7 +122,7 @@ static bool connectWifi() {
   return true;
 }
 
-/** Non-blocking: one connect attempt (avoid infinite loop in simulator). */
+// one shot connect, no while() blocking wokwi
 static bool tryMqttConnect() {
   if (mqtt.connected()) {
     return true;
@@ -188,7 +172,6 @@ static bool buildPayload(char *out, size_t outLen, bool *edgeAnomalyOut) {
   bool edge = (fabsf(amag - 1.0f) > 0.45f) || (gmag > 80.0f) || (amps > 17.5f);
   *edgeAnomalyOut = edge;
 
-  /* snprintf JSON — no ArduinoJson version conflicts on Wokwi */
   int n = snprintf(
       out, outLen,
       "{\"timestamp\":\"%s\",\"device_id\":\"%s\",\"sensors\":{"
@@ -240,7 +223,7 @@ void setup() {
   if (!rtcOk) {
     Serial.println("RTC: not found (check DS1307 wiring / I2C)");
   } else {
-    /* DS1307 has no lostPower() (that's DS3231). Set time if chip looks uninitialized. */
+    // DS1307: no lostPower() — if year garbage, stamp once from compile time
     DateTime now = rtc.now();
     if (now.year() < 2020 || now.year() > 2038) {
       Serial.println("RTC: invalid date — setting compile time once");

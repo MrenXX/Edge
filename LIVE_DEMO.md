@@ -48,29 +48,3 @@ Quick demo: kill path / wait for drops → `queued` → bring it back → burst 
 | 3 | **Move MPU / pot** | JSON fields change; **red LED** on `edge_anomaly` |
 | 4 | **Buffer** (optional 60 s) | Serial: `queued` then after restore `flushed`; subscriber sees backlog |
 | 5 | **Slide or README** | topic, broker, 4 channels + units, “Wokwi sim staff OK’d” |
-
----
-
-## 4) Git backup / push
-
-Remote: **https://github.com/MrenXX/Edge**
-
-```bash
-git add .
-git status
-git commit -m "Part1: Wokwi MQTT, ring buffer, docs"
-git push -u origin main
-```
-
-First-time setup (if clone empty):
-
-```bash
-git init
-git branch -M main
-git remote add origin https://github.com/MrenXX/Edge.git
-git add .
-git commit -m "Initial: Part 1 Wokwi + docs"
-git push -u origin main
-```
-
-`git push` requires GitHub auth (HTTPS token or SSH key).

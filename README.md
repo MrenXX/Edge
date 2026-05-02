@@ -62,11 +62,13 @@ Own broker on LAN: Wokwi [Private IoT Gateway](https://docs.wokwi.com/guides/esp
 
 ---
 
-## Energy harvesting — wanted it, didn’t ship it
+## Energy harvesting — idea we didn’t implement
 
-We had a **production-style** idea on paper: strap a **piezo** (or similar) on the chiller, rectify/regulate (e.g. something in the **LTC3588** family), **supercap** buffer, ESP32 in **deep sleep** most of the time and only wake to sample + burst MQTT — no wall wart, no battery swaps, fits the “waste energy → useful node” story.
+Industrial chillers vibrate whenever they run. The idea was to treat that vibration as a **tiny power source** instead of running the node from the wall or a disposable battery.
 
-We’re **not** claiming that in this repo. Wokwi can’t meaningfully simulate a harvester or cap bank, and we were already on **sim + USB** for Part 1, so we parked the power story and put effort into telemetry + the ring buffer. If a judge asks “what’s next on hardware,” self-power on the machine is still the honest stretch goal — it just isn’t built or demo’d here.
+Rough chain we had in mind: a **piezoelectric** patch (or similar harvester) on the casing turns vibration into **small AC** → a dedicated **PMIC** (parts like the **LTC3588** are built for this) **rectifies and steps** it to a stable low DC → a **supercapacitor** (farads, not microfarads) soaks up energy over minutes or hours because harvest power is in the **milliwatt** range, not enough to hold WiFi continuously. The ESP32 would spend almost all its time in **deep sleep** (microamps), wake on a timer or when the cap voltage crosses a threshold, **read the sensors once**, open WiFi, **publish one MQTT JSON burst**, then sleep again. Same firmware logic as today; only the **power budget** and wake cadence change.
+
+We’re **not** claiming any of that in this submission. **Wokwi** has no honest model for a harvester, PMIC, or cap bank, and we prioritized a **clear MQTT + buffer** story on **USB** in the sim. If someone asks what we’d do on a real install, the answer stays: **self-power from machine vibration** is the long-term picture — it’s just not wired, measured, or simulated here.
 
 ---
 

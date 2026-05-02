@@ -40,7 +40,7 @@ More detail: [WOKWI.md](WOKWI.md)
 | Broker | `broker.hivemq.com` **:** `1883` |
 | Topic | `telemetry/ADWYA-CHILLER-01` |
 
-**Not encrypted:** traffic is **plain MQTT** on port 1883 (no TLS on the wire). The cahier lists TLS/HTTPS as *optional* for the protocol row — we didn’t implement them to save time. GitHub / doc URLs use `https://`; that’s normal for the web, **not** the same as encrypting this MQTT stream.
+**Not encrypted:** traffic is **plain MQTT** on port 1883 (no TLS on the wire). The cahier lists TLS/HTTPS as *optional* for the protocol row — we didn’t implement them to save time. GitHub / doc URLs use `https://`; that’s normal for the web, **not** the same as encrypting this MQTT stream. **HTTPS** is just HTTP run over **TLS**; our firmware doesn’t speak HTTP at all, so “turn on HTTPS” here really means **MQTTS** (MQTT over TLS, often port 8883) or a separate **HTTPS REST** client — both need `WiFiClientSecure`, trust/certs, and a broker or API that supports TLS. Doable, but it’s a real chunk of work, not a one-line swap from 1883.
 
 Own broker on LAN: Wokwi [Private IoT Gateway](https://docs.wokwi.com/guides/esp32-wifi) + change `MQTT_HOST` in the sketch.
 
@@ -59,6 +59,14 @@ Own broker on LAN: Wokwi [Private IoT Gateway](https://docs.wokwi.com/guides/esp
 ## Ring buffer (hackathon bonus line)
 
 8 slots × 768 bytes. Push when MQTT down or publish fails; flush FIFO oldest-first after reconnect. Serial prints `[buffer] queued` / `flushed`.
+
+---
+
+## Energy harvesting — wanted it, didn’t ship it
+
+We had a **production-style** idea on paper: strap a **piezo** (or similar) on the chiller, rectify/regulate (e.g. something in the **LTC3588** family), **supercap** buffer, ESP32 in **deep sleep** most of the time and only wake to sample + burst MQTT — no wall wart, no battery swaps, fits the “waste energy → useful node” story.
+
+We’re **not** claiming that in this repo. Wokwi can’t meaningfully simulate a harvester or cap bank, and we were already on **sim + USB** for Part 1, so we parked the power story and put effort into telemetry + the ring buffer. If a judge asks “what’s next on hardware,” self-power on the machine is still the honest stretch goal — it just isn’t built or demo’d here.
 
 ---
 

@@ -1,0 +1,5 @@
+# Wokwi / Arduino Library Manager — one name per line (https://docs.wokwi.com/guides/libraries)
+Adafruit MPU6050
+Adafruit Unified Sensor
+RTClib
+PubSubClient

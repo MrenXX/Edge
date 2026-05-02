@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "author": "Mohamed Safraou",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 192,
+      "left": 100.84,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-mpu6050",
+      "id": "imu1",
+      "top": 195.82,
+      "left": -228.08,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-ds1307",
+      "id": "rtc1",
+      "top": 301.8,
+      "left": -278.3,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot1",
+      "top": 430.7,
+      "left": -211.4,
+      "rotate": 90,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_led_green",
+      "top": 100,
+      "left": -200,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_green",
+      "top": 121.2,
+      "left": -63.4,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_led_red",
+      "top": 100,
+      "left": -270,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_red",
+      "top": 121.2,
+      "left": -130.6,
+      "attrs": { "color": "red" }
+    }
+  ],
+  "connections": [
+    ["esp:TX", "$serialMonitor:RX", "", []],
+    ["esp:RX", "$serialMonitor:TX", "", []],
+
+    ["imu1:VCC", "esp:3V3", "red", ["v0"]],
+    ["esp:GND.2", "imu1:GND", "black", ["v0"]],
+    ["imu1:SDA", "esp:21", "green", ["v0"]],
+    ["imu1:SCL", "esp:22", "green", ["v0"]],
+    ["imu1:AD0", "esp:3V3", "red", ["v0"]],
+
+    ["rtc1:5V", "esp:3V3", "red", ["h0"]],
+    ["rtc1:GND", "esp:GND.2", "black", ["h0"]],
+    ["rtc1:SDA", "esp:21", "green", ["h0"]],
+    ["rtc1:SCL", "esp:22", "green", ["h0"]],
+
+    ["pot1:VCC", "esp:3V3", "red", ["v0"]],
+    ["pot1:GND", "esp:GND.2", "black", ["v0"]],
+    ["pot1:SIG", "esp:34", "green", ["v0"]],
+
+    ["esp:4", "r_led_green:1", "green", ["v0"]],
+    ["r_led_green:2", "led_green:A", "green", ["v0"]],
+    ["led_green:C", "esp:GND.2", "black", ["v0"]],
+
+    ["esp:2", "r_led_red:1", "green", ["v0"]],
+    ["r_led_red:2", "led_red:A", "green", ["v0"]],
+    ["led_red:C", "esp:GND.2", "black", ["v0"]]
+  ],
+  "dependencies": {}
+}

@@ -47,8 +47,8 @@ Everything below matches [diagram.json](diagram.json) (Wokwi) so the **sim and a
 
 **LEDs (status)** — each LED needs a **220 Ω** resistor in series so the GPIO does not source too much current:
 
-- **Green:** **GPIO4** → resistor → LED **anode (+)** → LED **cathode (−)** → **GND**. Used as a general “OK / activity” indicator in code.  
-- **Red:** **GPIO2** → resistor → LED **anode** → **cathode** → **GND**. Lights when **`edge_anomaly`** is true (motion or “amps” over threshold).
+- **Green:** **GPIO4** → resistor → LED **anode (+)** → LED **cathode (−)** → **GND**. **On** when **WiFi and MQTT** are both up; **off** if either drops.  
+- **Red:** **GPIO2** → resistor → LED **anode** → **cathode** → **GND**. **On** when **`edge_anomaly`** is true (motion or “amps” over threshold).
 
 **What is not on the board** — no separate ACS712, no display, no relay: Part 1 is **edge sensing + MQTT** with the parts listed above. Serial **115200** is the usual debug view.
 

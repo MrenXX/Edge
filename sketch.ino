@@ -1,7 +1,7 @@
 /*
   Eco-Edge — INSAT Re·Tech Fusion, Part 1
   Wokwi: MPU6050 @ 0x69, DS1307, pot on 34 as rough "amps", LEDs 4 (green) / 2 (red).
-  MQTT JSON every ~2s; ring buffer if broker drops.
+  MQTT JSON every ~2s; ring buffer if broker drops; TCP reset + MQTT backoff on failures.
 */
 
 #define MQTT_MAX_PACKET_SIZE 2048
@@ -51,6 +51,11 @@ PubSubClient mqtt(wifiClient);
 RTC_DS1307 rtc;
 Adafruit_MPU6050 mpu;
 
+static void resetMqttTcp() {
+  mqtt.disconnect();
+  wifiClient.stop();
+}
+
 static void ringPush(const char *msg) {
   if (ringCount == RING_SLOTS) {
     ringHead = (ringHead + 1) % RING_SLOTS;
@@ -77,6 +82,7 @@ static void ringFlush() {
       ringCount--;
       delay(25);
     } else {
+      resetMqttTcp();
       break;
     }
   }
@@ -140,6 +146,7 @@ static bool tryMqttConnect() {
   }
   Serial.print("fail rc=");
   Serial.println(mqtt.state());
+  resetMqttTcp();
   return false;
 }
 
@@ -254,18 +261,36 @@ void setup() {
 void loop() {
   static unsigned long lastPub = 0;
   static bool lastAnomaly = false;
+  static bool prevWifiOk = false;
+  static unsigned long lastMqttTry = 0;
+  static unsigned long mqttBackoffMs = 2500UL;
+  const unsigned long MQTT_BACKOFF_INITIAL = 2500UL;
+  const unsigned long MQTT_BACKOFF_MAX = 30000UL;
+
   bool wifiOk = (WiFi.status() == WL_CONNECTED);
   if (!wifiOk) {
     connectWifi();
     wifiOk = (WiFi.status() == WL_CONNECTED);
   }
 
-  static unsigned long lastMqttTry = 0;
+  if (wifiOk && !prevWifiOk) {
+    mqttBackoffMs = MQTT_BACKOFF_INITIAL;
+    lastMqttTry = 0;
+  }
+  prevWifiOk = wifiOk;
+
   if (wifiOk && !mqtt.connected()) {
     unsigned long now = millis();
-    if (lastMqttTry == 0 || now - lastMqttTry >= 2500UL) {
+    if (lastMqttTry == 0 || now - lastMqttTry >= mqttBackoffMs) {
       lastMqttTry = now;
-      tryMqttConnect();
+      if (tryMqttConnect()) {
+        mqttBackoffMs = MQTT_BACKOFF_INITIAL;
+      } else {
+        mqttBackoffMs *= 2;
+        if (mqttBackoffMs > MQTT_BACKOFF_MAX) {
+          mqttBackoffMs = MQTT_BACKOFF_MAX;
+        }
+      }
     }
   }
 
@@ -290,6 +315,7 @@ void loop() {
         size_t len = strlen(payload);
         if (!mqtt.publish(MQTT_TOPIC, payload, false)) {
           Serial.printf("MQTT publish failed len=%u state=%d\n", (unsigned)len, mqtt.state());
+          resetMqttTcp();
           ringPush(payload);
         } else {
           Serial.println(payload);

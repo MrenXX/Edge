@@ -38,6 +38,8 @@ Wokwi gives you a virtual AP:
 
 The sketch uses these by default so **WiFi works without editing** in the public simulator.
 
+**Host PC vs simulated Wi‑Fi:** `Wokwi-GUEST` is a **virtual** access point inside the sim. Whether **HiveMQ** (or any public broker) is reachable depends on your **browser having a path to the internet**—usually the same as your laptop’s Wi‑Fi / Ethernet. So disabling **laptop Wi‑Fi** can break **MQTT to the broker** while the sim still shows **Wi‑Fi connected**, which looks confusing on Serial (`MQTT: fail rc=-2`). See **[LIVE_DEMO.md](LIVE_DEMO.md)** §2b for demo-friendly ways to show disconnect + buffer flush. After a long outage, if MQTT never recovers, try **stop/start simulation** once.
+
 ## 4. MQTT broker (important)
 
 - **Public Wokwi internet gateway:** your simulated ESP **cannot** see `localhost` on your laptop. Use a **public** broker for a quick test, or Wokwi’s **Private IoT Gateway** to reach **Mosquitto on your PC**.
@@ -89,5 +91,5 @@ We can’t run Wokwi from here — paste Serial or compiler errors if stuck.
 See **[LIVE_DEMO.md](LIVE_DEMO.md)** for:
 
 - `mosquitto_sub` **redirect / tee** commands (bash + PowerShell)
-- **Ring buffer** demo (Serial `queued` / `flushed`) for Part 1 **bonus innovation**
-- Suggested **live demo order** and a minimal **git** backup snippet
+- **Ring buffer** demo (Serial `queued` / `flushed`) and **§2b** disconnect/reconnect notes for Wokwi
+- Suggested **live demo order**

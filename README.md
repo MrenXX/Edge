@@ -32,6 +32,28 @@ More detail: [WOKWI.md](WOKWI.md)
 
 ---
 
+## Hardware and wiring
+
+Everything below matches [diagram.json](diagram.json) (Wokwi) so the **sim and a real breadboard** are the same story: one **ESP32 DevKit-C** as the controller, **3V3** and **GND** as the rails.
+
+**I²C bus (shared)** — **GPIO21 = SDA**, **GPIO22 = SCL**. Two slaves on the same pair of wires:
+
+| Part | Role | Power | Notes |
+|------|------|-------|--------|
+| **MPU6050** | accel + gyro + die temp | VCC→3V3, GND→GND | **AD0 → 3V3** so the chip answers at **0x69** (sketch matches). |
+| **DS1307** RTC | wall-clock for JSON `timestamp` | **5V pin** tied to **3V3** in the sim (same as diagram); GND common; SDA/SCL as above. Address **0x68**. |
+
+**Potentiometer (load proxy)** — one end **3V3**, the other **GND**, **wiper → GPIO34**. That pin is **ADC-only** on the ESP32 (good for a voltage divider read). Firmware maps the reading to **0–20 A** for demo, not a true shunt.
+
+**LEDs (status)** — each LED needs a **220 Ω** resistor in series so the GPIO does not source too much current:
+
+- **Green:** **GPIO4** → resistor → LED **anode (+)** → LED **cathode (−)** → **GND**. Used as a general “OK / activity” indicator in code.  
+- **Red:** **GPIO2** → resistor → LED **anode** → **cathode** → **GND**. Lights when **`edge_anomaly`** is true (motion or “amps” over threshold).
+
+**What is not on the board** — no separate ACS712, no display, no relay: Part 1 is **edge sensing + MQTT** with the parts listed above. Serial **115200** is the usual debug view.
+
+---
+
 ## MQTT defaults
 
 | | |
@@ -103,9 +125,9 @@ Same table as [LIVE_DEMO.md](LIVE_DEMO.md) §3: Wokwi + Serial → second PC sub
 
 ---
 
-## Real hardware
+## Real hardware (flash off Wokwi)
 
-Same pins if you flash a physical ESP32: I²C 21/22, pot 34, LEDs 4 & 2. Put your WiFi + broker in the sketch.
+Use the same pins as [Hardware and wiring](#hardware-and-wiring). Set **WiFi SSID/password** and **MQTT host** in `sketch.ino` for your network.
 
 ---
 

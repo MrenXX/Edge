@@ -17,7 +17,10 @@ Repo: [github.com/MrenXX/Edge](https://github.com/MrenXX/Edge)
 | [LIVE_DEMO.md](LIVE_DEMO.md) | `mosquitto_sub`, logging to disk, demo order |
 | [plan.md](plan.md) | Rest of hackathon (P2/P3) — still the master plan |
 | [cahier_de_charge.md](cahier_de_charge.md) | Official spec |
-| [rapport_audit.md](rapport_audit.md), [example_images_data_factures_et_diverses.md](example_images_data_factures_et_diverses.md) | ADWYA context for later parts |
+| [rapport_audit.md](rapport_audit.md) | ADWYA factory audit context (pitch, scenarios) |
+| [part2/README.md](part2/README.md) | **Part 2:** pipeline, MQTT merge, Streamlit unified view — start here for stack overview |
+
+Active Part 2 integration work lives on git branch **`part-2`** (see that branch’s `part2/README.md` for runbook and architecture).
 
 ---
 

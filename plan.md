@@ -12,7 +12,8 @@
 |------|------------------|
 | [cahier_de_charge.md](cahier_de_charge.md) | Official challenge: Parts 1–3 objectives, **deliverables**, **scoring tables**, deadlines, pitch format. **Authoritative** for points and rules. |
 | [rapport_audit.md](rapport_audit.md) | Factory knowledge base: ADWYA pharma context, boilers/cleanrooms/compressors, tri-gen, **waste heat** angles for optional Track B, **quantifiable** numbers for pitch. |
-| [example_images_data_factures_et_diverses.md](example_images_data_factures_et_diverses.md) | Shapes of real data: STEG electricity (4 slots, achat/vente), gas NM³/TH, SONEDE m³, SCADA-style alarms. Guides Part 2 extraction and anomalies. |
+| [part2/plan_part2.md](part2/plan_part2.md) | **Part 2 master plan** (rubric, hybrid extract, Docker, dashboard, IoT merge, schema deltas). |
+| [part2/example_images_data_factures_et_diverses.md](part2/example_images_data_factures_et_diverses.md) | Shapes of real data: STEG electricity (4 slots, achat/vente), gas NM³/TH, SONEDE m³, SCADA-style alarms. Guides Part 2 extraction and anomalies. |
 | [plan_alpha.md](plan_alpha.md) | Earlier **narrative draft** (MQTT, buffer, Streamlit idea). Some hardware text is **outdated**—this `plan.md` **supersedes** hardware and JSON decisions. |
 | [grill-me.md](grill-me.md) | Optional process: resolve ambiguous design choices **one question at a time** with the human. |
 
@@ -87,6 +88,7 @@ This satisfies “distinct sensor types” as **three physical quantities** with
 | `edge/` | Optional future folder; **today** firmware lives in repo root `sketch.ino` (Wokwi / ESP32). |
 | `pipeline/` | Document extract, normalize to kWh, CO₂, forecast, submissions, API, `Dockerfile`. |
 | `dashboard/` | UI only (e.g. Streamlit): pipeline HTTP + live MQTT; **no** document parsing here. |
+| `part2/` | Part 2 **specs + sample context**: [part2/plan_part2.md](part2/plan_part2.md), [part2/example_images_data_factures_et_diverses.md](part2/example_images_data_factures_et_diverses.md). Prefer implementing `part2/pipeline/`, `part2/dashboard/`, `part2/docker-compose.yml` here (see plan_part2 §5) or keep root paths—pick one and document it. |
 | **Root** | `README.md`, `docker-compose.yml`, demo script, optional `DECISIONS.md` for overrides. |
 
 ---

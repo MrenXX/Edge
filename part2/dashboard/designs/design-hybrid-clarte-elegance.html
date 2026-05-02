@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eco-Edge — Hybride clarté + élégance (jury)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..700;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sand: #BBAB8C;
+      --umber: #776B5D;
+      --ink: #282A3A;
+      --paper: rgba(255, 255, 255, 0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--sand);
+      color: var(--ink);
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .masthead {
+      padding: 1.75rem 8% 1.25rem;
+      border-bottom: 1px solid rgba(40, 42, 58, 0.15);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 100%);
+    }
+    .masthead .kicker {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--umber);
+      margin-bottom: 0.35rem;
+    }
+    .masthead h1 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .masthead .lede {
+      max-width: 52ch;
+      margin: 0;
+      color: var(--umber);
+      font-size: 1rem;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+      gap: 0;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+      .live-panel { border-left: none; border-top: 1px solid rgba(187, 171, 140, 0.35); }
+    }
+    .main {
+      padding: 2rem 8% 3rem;
+    }
+    section.block {
+      margin-bottom: 2.75rem;
+    }
+    section.block:last-of-type { margin-bottom: 1.5rem; }
+    .block-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem 1.25rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 2px solid var(--ink);
+    }
+    .block-head h2 {
+      font-family: "Fraunces", serif;
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ink);
+    }
+    .block-head .meta {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: var(--umber);
+      letter-spacing: 0.04em;
+    }
+    .block-head .badge {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      border: 1px solid var(--umber);
+      color: var(--umber);
+    }
+    .sub {
+      font-size: 14px;
+      color: var(--umber);
+      margin: 0 0 1rem;
+      max-width: 48ch;
+    }
+    .panel {
+      background: var(--paper);
+      border: 1px solid rgba(40, 42, 58, 0.12);
+      border-radius: 2px;
+      padding: 1rem 1.15rem;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+    }
+    table.ledger {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+    }
+    table.ledger caption {
+      caption-side: top;
+      text-align: left;
+      font-family: "Newsreader", serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      padding-bottom: 0.5rem;
+    }
+    table.ledger th,
+    table.ledger td {
+      border: 1px solid rgba(119, 107, 93, 0.45);
+      padding: 8px 10px;
+      text-align: right;
+    }
+    table.ledger th:first-child,
+    table.ledger td:first-child { text-align: left; }
+    table.ledger th {
+      background: var(--ink);
+      color: var(--sand);
+      font-weight: 500;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    table.ledger tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.15); }
+    table.ledger tr.reactive td {
+      background: rgba(119, 107, 93, 0.12);
+      font-style: italic;
+      color: var(--ink);
+    }
+    .table-stack { display: flex; flex-direction: column; gap: 1.5rem; }
+    .gas-grid {
+      display: grid;
+      grid-template-columns: 1fr 200px;
+      gap: 1.25rem;
+      align-items: stretch;
+    }
+    @media (max-width: 700px) {
+      .gas-grid { grid-template-columns: 1fr; }
+    }
+    .ladder {
+      border: 1px solid var(--umber);
+      padding: 1rem 1.1rem;
+      background: rgba(255, 255, 255, 0.18);
+    }
+    .ladder h3 {
+      font-family: "Fraunces", serif;
+      font-size: 1rem;
+      margin: 0 0 0.85rem;
+      color: var(--ink);
+    }
+    .ladder-step {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+    }
+    .ladder-step .sym { color: var(--umber); flex-shrink: 0; }
+    .ladder-step strong { color: var(--ink); font-weight: 500; }
+    .sonede-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 1rem 1.5rem;
+      align-items: end;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 13px;
+    }
+    @media (max-width: 640px) {
+      .sonede-row { grid-template-columns: 1fr; }
+    }
+    .sonede-row .lbl { font-family: "Newsreader", serif; font-size: 13px; color: var(--umber); }
+    .sonede-row .num { font-size: 1.1rem; font-weight: 500; color: var(--ink); }
+    .bar-split {
+      height: 28px;
+      display: flex;
+      border: 1px solid var(--ink);
+      max-width: 320px;
+    }
+    .bar-split .a { flex: 7265; background: var(--umber); opacity: 0.88; }
+    .bar-split .b { flex: 6294; background: var(--ink); }
+    .scada-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .scada-list li {
+      margin-bottom: 1rem;
+      padding-left: 1rem;
+      border-left: 3px solid var(--umber);
+      font-family: "Newsreader", serif;
+    }
+    .scada-list li.critical { border-left-color: var(--ink); border-left-width: 5px; }
+    .scada-list .code {
+      font-family: "Fraunces", serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: block;
+      color: var(--ink);
+      margin-top: 2px;
+    }
+    .scada-list .ts {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: var(--umber);
+    }
+    .scada-list .subsys { font-size: 13px; color: var(--umber); margin-top: 4px; }
+
+    .live-panel {
+      position: sticky;
+      top: 0;
+      min-height: 100vh;
+      background: var(--ink);
+      color: var(--sand);
+      padding: 1.75rem 1.35rem 2rem;
+      border-left: 1px solid rgba(187, 171, 140, 0.25);
+    }
+    .live-panel h2 {
+      font-family: "Fraunces", serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 0 0 0.35rem;
+      color: var(--sand);
+    }
+    .live-panel .explain {
+      font-size: 13px;
+      line-height: 1.45;
+      color: rgba(187, 171, 140, 0.88);
+      margin: 0 0 1.25rem;
+    }
+    .status-compact {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      margin-bottom: 1.25rem;
+      padding: 0.65rem 0.75rem;
+      background: rgba(187, 171, 140, 0.08);
+      border: 1px solid rgba(187, 171, 140, 0.22);
+    }
+    .status-compact span { display: block; margin-bottom: 4px; color: rgba(187, 171, 140, 0.9); }
+    .status-compact strong { color: var(--sand); }
+    .transcript {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      padding: 0.85rem;
+      border: 1px solid rgba(187, 171, 140, 0.25);
+      margin-bottom: 1.25rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .transcript .key { color: var(--umber); }
+    .transcript .anom {
+      background: rgba(187, 171, 140, 0.12);
+      border-left: 3px solid var(--sand);
+      padding: 0.35rem 0.5rem;
+      margin: 0.4rem 0;
+      display: block;
+    }
+    .strip-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--umber);
+      margin-bottom: 6px;
+    }
+    .strip {
+      display: flex;
+      align-items: flex-end;
+      height: 52px;
+      gap: 2px;
+    }
+    .strip span {
+      flex: 1;
+      min-width: 2px;
+      background: var(--sand);
+      opacity: 0.25;
+      border-radius: 1px 1px 0 0;
+    }
+    .strip span:nth-child(5n) { opacity: 0.45; }
+    .strip span.hit { opacity: 0.95; background: var(--sand); }
+    .live-panel a {
+      color: var(--sand);
+      font-size: 12px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <p class="kicker">ADWYA · Eco-Edge · Partie 2</p>
+    <h1>Relevé unifié — documents &amp; fil edge</h1>
+    <p class="lede">
+      À gauche : factures et relevés extraits (STEG, gaz, eau, SCADA), en tableaux lisibles.
+      À droite : télémesure MQTT temps réel — le jury voit les deux mondes d’un coup d’œil.
+    </p>
+  </header>
+
+  <div class="layout">
+    <div class="main">
+      <section class="block" id="electricite">
+        <div class="block-head">
+          <h2>Électricité STEG</h2>
+          <span class="badge">Documents</span>
+          <span class="meta">Sept. 2025 · injectée vs produite · réactive séparée</span>
+        </div>
+        <p class="sub">Deux compteurs distincts (tri-génération). Les Δ kWh actifs ne mélangent pas la ligne réactive.</p>
+        <div class="panel table-stack">
+          <table class="ledger">
+            <caption>CTR 3738358 — Énergie injectée (grid_injection)</caption>
+            <thead>
+              <tr>
+                <th>Créneau</th>
+                <th>Code</th>
+                <th>Ancien</th>
+                <th>Nouveau</th>
+                <th>Δ kWh</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Jour</td><td>2.8.3</td><td>1&nbsp;824&nbsp;093</td><td>1&nbsp;877&nbsp;972</td><td>53&nbsp;879</td></tr>
+              <tr><td>Pointe</td><td>2.8.2</td><td>542&nbsp;758</td><td>562&nbsp;293</td><td>19&nbsp;535</td></tr>
+              <tr><td>Nuit</td><td>2.8.1</td><td>2&nbsp;476&nbsp;108</td><td>2&nbsp;585&nbsp;455</td><td>109&nbsp;347</td></tr>
+              <tr><td>Soir</td><td>2.8.4</td><td>107&nbsp;422</td><td>107&nbsp;424</td><td>2</td></tr>
+            </tbody>
+          </table>
+          <table class="ledger">
+            <caption>CTR 61971444 — Énergie produite (onsite_generation)</caption>
+            <thead>
+              <tr>
+                <th>Créneau</th>
+                <th>Code</th>
+                <th>Ancien</th>
+                <th>Nouveau</th>
+                <th>Δ kWh</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Jour</td><td>6.8.3</td><td>12&nbsp;223</td><td>12&nbsp;311</td><td>88</td></tr>
+              <tr><td>Pointe</td><td>6.8.2</td><td>36&nbsp;024</td><td>36&nbsp;131</td><td>107</td></tr>
+              <tr><td>Nuit</td><td>6.8.1</td><td>47&nbsp;450</td><td>47&nbsp;646</td><td>196</td></tr>
+              <tr><td>Soir</td><td>6.8.4</td><td>4&nbsp;250</td><td>4&nbsp;250</td><td>0</td></tr>
+              <tr class="reactive">
+                <td colspan="2">Réactive (hors bilan kWh actif)</td>
+                <td>11&nbsp;788&nbsp;849</td>
+                <td>12&nbsp;580&nbsp;185</td>
+                <td>791&nbsp;336</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="block" id="gaz">
+        <div class="block-head">
+          <h2>Gaz naturel STEG</h2>
+          <span class="badge">Documents</span>
+          <span class="meta">Mai 2024 · TH facturé = référence énergétique</span>
+        </div>
+        <p class="sub">Chaîne de normalisation visible pour le jury (facteurs versionnés côté API en prod).</p>
+        <div class="gas-grid">
+          <div class="panel">
+            <table class="ledger">
+              <caption>Montants &amp; volumes extraits</caption>
+              <thead>
+                <tr><th>Champ</th><th>Valeur</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Δ NM³</td><td>204&nbsp;884</td></tr>
+                <tr><td>PCS</td><td>10,079</td></tr>
+                <tr><td>TH total</td><td>1&nbsp;782&nbsp;471</td></tr>
+                <tr><td>Coût HT (TND)</td><td>110&nbsp;156,708</td></tr>
+                <tr><td>Net à payer TTC</td><td>133&nbsp;600,172</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ladder">
+            <h3>Normalisation</h3>
+            <div class="ladder-step"><span class="sym">→</span> NM³ <strong>204&nbsp;884</strong></div>
+            <div class="ladder-step"><span class="sym">×</span> PCS <strong>10,079</strong></div>
+            <div class="ladder-step"><span class="sym">→</span> TH <strong>1&nbsp;782&nbsp;471</strong> <span style="color:var(--umber);font-style:italic">autoritaire</span></div>
+            <div class="ladder-step"><span class="sym">×</span> 1,163 kWh/TH</div>
+            <div class="ladder-step"><span class="sym">→</span> ≈ <strong>2,07×10⁶</strong> kWh</div>
+            <div class="ladder-step"><span class="sym">→</span> Scope 1 ≈ <strong>418 t</strong> CO₂e</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" id="eau">
+        <div class="block-head">
+          <h2>Eau SONEDE</h2>
+          <span class="badge">Documents</span>
+          <span class="meta">Févr. 2023 · KPI parallèle (non fusionné au kWh)</span>
+        </div>
+        <div class="panel">
+          <div class="sonede-row">
+            <div>
+              <div class="lbl">Volume consommé</div>
+              <div class="num">3&nbsp;633 m³</div>
+            </div>
+            <div>
+              <div class="lbl">Net à payer TTC</div>
+              <div class="num">14&nbsp;940,054 TND</div>
+            </div>
+            <div></div>
+            <div>
+              <div class="lbl">Frais consommation eau HT</div>
+              <div class="num">7&nbsp;265,503</div>
+            </div>
+            <div>
+              <div class="lbl">Frais assainissement HT</div>
+              <div class="num">6&nbsp;294,106</div>
+            </div>
+            <div></div>
+          </div>
+          <p class="sub" style="margin-top:1rem;margin-bottom:0.5rem;">Répartition HT (valeurs extraites)</p>
+          <div class="bar-split" title="Consommation vs assainissement"></div>
+        </div>
+      </section>
+
+      <section class="block" id="scada">
+        <div class="block-head">
+          <h2>SCADA / anomalies</h2>
+          <span class="badge">Documents</span>
+          <span class="meta">Extrait écran · sévérités</span>
+        </div>
+        <p class="sub">Libellés lisibles pour le jury — pas seulement un flux monospace.</p>
+        <div class="panel">
+          <ul class="scada-list">
+            <li class="critical">
+              <span class="ts">20/04/26 08:49:07</span>
+              <span class="code">OVERFLOW_TEMP_HIGH</span>
+              <div class="subsys">Chiller · critique</div>
+            </li>
+            <li class="critical">
+              <span class="ts">20/04/26 06:32:37</span>
+              <span class="code">T4xx.2 · chambre de combustion trop basse</span>
+              <div class="subsys">Moteur gaz</div>
+            </li>
+            <li>
+              <span class="ts">20/04/26 06:34:07</span>
+              <span class="code">ENGINE IN PARALLEL MODE</span>
+              <div class="subsys">Statut</div>
+            </li>
+            <li>
+              <span class="ts">En attente (bandeau)</span>
+              <span class="code">ABSO_PUMP_NOT_RESPOND</span>
+              <div class="subsys">Chiller</div>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <aside class="live-panel" aria-labelledby="live-title">
+      <h2 id="live-title">Télémesure edge</h2>
+      <p class="explain">Données MQTT Partie 1 (accéléro, gyro, température, option courant). Séparé des factures : même écran, zone dédiée.</p>
+      <div class="status-compact">
+        <span><strong>Broker</strong> · connecté</span>
+        <span><strong>GET /health</strong> · OK</span>
+        <span><strong>Dernier message</strong> · il y a 2 s</span>
+      </div>
+      <div class="transcript">
+        <span class="key">device_id</span> ADWYA-CHILLER-01<br />
+        <span class="key">timestamp</span> 2026-05-02T03:45:12+01:00<br />
+        <span class="key">sensors</span> temp_c 35.5 · ‖accel‖ 1.02 g<br />
+        <span class="anom">edge_anomaly · true</span>
+        <span class="key">meta</span> fw 1.0.0 · uptime_s 12345
+      </div>
+      <p class="strip-label">Bande live (temp + activité)</p>
+      <div class="strip" aria-hidden="true">
+        <span style="height:32%"></span><span style="height:48%"></span><span style="height:41%"></span><span style="height:55%"></span><span class="hit" style="height:88%"></span>
+        <span style="height:40%"></span><span style="height:47%"></span><span style="height:53%"></span><span style="height:39%"></span><span style="height:58%"></span>
+        <span style="height:45%"></span><span style="height:50%"></span><span style="height:42%"></span><span style="height:56%"></span><span style="height:49%"></span>
+      </div>
+      <p style="margin-top:1.25rem;"><a href="#">OpenAPI /docs</a> · <a href="#">GET /unified</a></p>
+    </aside>
+  </div>
+</body>
+</html>

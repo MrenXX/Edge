@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eco-Edge — Maquettes Part 2 (3 directions)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sand: #BBAB8C;
+      --umber: #776B5D;
+      --ink: #282A3A;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--ink);
+      color: var(--sand);
+      font-family: system-ui, sans-serif;
+      padding: 2rem 6vw 3rem;
+    }
+    h1 {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      margin: 0 0 0.5rem;
+    }
+    p.lead { color: var(--umber); max-width: 52ch; line-height: 1.55; margin-bottom: 2rem; }
+    .swatches { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .sw {
+      width: 100px;
+      height: 56px;
+      border-radius: 4px;
+      border: 1px solid rgba(187, 171, 140, 0.35);
+      display: flex;
+      align-items: flex-end;
+      padding: 6px;
+      font-size: 10px;
+      font-family: ui-monospace, monospace;
+      color: var(--ink);
+    }
+    .sw.sand { background: var(--sand); }
+    .sw.umber { background: var(--umber); color: var(--sand); }
+    .sw.ink { background: var(--ink); color: var(--sand); border-color: var(--umber); }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+    a.card {
+      display: block;
+      padding: 1.25rem 1.5rem;
+      background: rgba(119, 107, 93, 0.2);
+      border: 1px solid var(--umber);
+      color: var(--sand);
+      text-decoration: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    a.card:hover {
+      border-color: var(--sand);
+      background: rgba(187, 171, 140, 0.1);
+    }
+    a.card h2 {
+      font-family: "Source Serif 4", serif;
+      font-size: 1.15rem;
+      margin: 0 0 0.5rem;
+    }
+    a.card p { margin: 0; font-size: 13px; color: var(--umber); line-height: 1.45; }
+    .rec {
+      margin-top: 2rem;
+      padding: 1rem 1.25rem;
+      border-left: 4px solid var(--sand);
+      background: rgba(0, 0, 0, 0.2);
+      max-width: 60ch;
+      font-size: 14px;
+    }
+    .rec a { color: var(--sand); }
+  </style>
+</head>
+<body>
+  <h1>Eco-Edge · directions UI Part 2</h1>
+  <p class="lead">
+    Maquettes statiques HTML (palette #BBAB8C · #776B5D · #282A3A + neutres). Trois explorations + un hybride clarté/élégance pour jury. Pas d’implémentation Streamlit ici.
+  </p>
+  <div class="swatches">
+    <div class="sw sand">#BBAB8C</div>
+    <div class="sw umber">#776B5D</div>
+    <div class="sw ink">#282A3A</div>
+  </div>
+  <div class="cards">
+    <a class="card" href="design-hybrid-clarte-elegance.html" style="border-color: var(--sand); background: rgba(187, 171, 140, 0.15);">
+      <h2>Hybride · clarté + élégance (jury)</h2>
+      <p>Tables complètes (STEG, gaz, SONEDE, SCADA) sur fond sable + colonne sombre télémesure. Recommandé pour pitch.</p>
+    </a>
+    <a class="card" href="design-1-salle-des-machines.html">
+      <h2>1 · Salle des machines</h2>
+      <p>HMI sombre, registres STEG doubles, échelle de normalisation gaz, bandeau MQTT, ticker SCADA.</p>
+    </a>
+    <a class="card" href="design-2-releve-ouvert.html">
+      <h2>2 · Relevé ouvert</h2>
+      <p>Planche éditoriale sable, chiffre héros, rail sombre pour transcript JSON live, SCADA en pied de page.</p>
+    </a>
+    <a class="card" href="design-3-chronologie-unifiee.html">
+      <h2>3 · Chronologie unifiée</h2>
+      <p>Axe temporel, nœuds par document / période, micro-chronologie MQTT fixée en bas d’écran.</p>
+    </a>
+  </div>
+  <div class="rec">
+    Choix documenté : <a href="../DESIGN_PICK.md">DESIGN_PICK.md</a> (défaut jury · hybride). Cartographie API : <a href="../UNIFIED_VIEW_FIELD_MAP.md">UNIFIED_VIEW_FIELD_MAP.md</a>.
+  </div>
+</body>
+</html>

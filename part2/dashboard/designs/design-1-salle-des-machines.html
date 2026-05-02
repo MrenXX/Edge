@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eco-Edge — Design 1 · Salle des machines</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sand: #BBAB8C;
+      --umber: #776B5D;
+      --ink: #282A3A;
+      --white: #fff;
+      --black: #0a0a0c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--ink);
+      color: var(--sand);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      position: relative;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.04;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(187, 171, 140, 0.15) 2px,
+        rgba(187, 171, 140, 0.15) 3px
+      );
+      z-index: 999;
+    }
+    h1, h2, .section-title {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .status-rail {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--umber);
+      background: rgba(40, 42, 58, 0.98);
+      flex-wrap: wrap;
+    }
+    .status-rail .label { color: var(--umber); text-transform: uppercase; font-size: 10px; letter-spacing: 0.12em; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+    .dot-ok { background: var(--sand); box-shadow: 0 0 6px rgba(187, 171, 140, 0.5); }
+    .dot-warn { background: var(--umber); }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr 160px;
+      grid-template-rows: 1fr auto;
+      min-height: calc(100vh - 38px - 120px);
+      gap: 0;
+    }
+    .alarm-ticker {
+      border-right: 1px solid var(--umber);
+      padding: 0.75rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 160px);
+    }
+    .alarm-ticker h2 {
+      font-size: 11px;
+      margin: 0 0 0.75rem;
+      color: var(--umber);
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .alarm-line {
+      margin-bottom: 0.65rem;
+      padding-left: 6px;
+      border-left: 2px solid var(--umber);
+      font-size: 10px;
+      color: rgba(187, 171, 140, 0.85);
+    }
+    .alarm-line.critical { border-left-width: 4px; border-left-color: var(--sand); color: var(--sand); }
+    .alarm-line .ts { color: var(--umber); display: block; margin-bottom: 2px; }
+    .center {
+      padding: 0.75rem 1rem;
+      overflow: auto;
+    }
+    .section-title { font-size: 14px; margin: 0 0 0.5rem; color: var(--sand); }
+    .sub { color: var(--umber); font-size: 10px; margin-bottom: 1rem; }
+    table.ledger {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.25rem;
+    }
+    table.ledger th,
+    table.ledger td {
+      border: 1px solid var(--umber);
+      padding: 4px 6px;
+      text-align: right;
+    }
+    table.ledger th:first-child,
+    table.ledger td:first-child { text-align: left; }
+    table.ledger th {
+      background: rgba(119, 107, 93, 0.25);
+      color: var(--sand);
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    table.ledger td { color: var(--sand); }
+    table.ledger tr.reactive td { background: rgba(119, 107, 93, 0.12); font-style: italic; }
+    .mid-row {
+      display: grid;
+      grid-template-columns: 1fr 200px;
+      gap: 1rem;
+      align-items: start;
+    }
+    .ladder {
+      border: 1px solid var(--umber);
+      padding: 0.75rem;
+      background: rgba(0, 0, 0, 0.2);
+    }
+    .ladder h3 {
+      margin: 0 0 0.75rem;
+      font-size: 11px;
+      color: var(--umber);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .ladder-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+    .ladder-step .arrow { color: var(--umber); flex-shrink: 0; }
+    .ladder-step strong { color: var(--sand); }
+    .sonede-col {
+      border-left: 1px solid var(--umber);
+      padding: 0.75rem;
+      background: rgba(0, 0, 0, 0.15);
+    }
+    .sonede-col h2 {
+      font-size: 12px;
+      margin: 0 0 0.5rem;
+      color: var(--sand);
+      font-family: "Source Serif 4", serif;
+    }
+    .bar-split {
+      height: 24px;
+      display: flex;
+      margin: 0.75rem 0;
+      border: 1px solid var(--umber);
+    }
+    .bar-split .a { flex: 7265; background: var(--umber); }
+    .bar-split .b { flex: 6294; background: var(--sand); color: var(--ink); font-size: 9px; display: flex; align-items: center; justify-content: center; }
+    .mqtt-band {
+      grid-column: 1 / -1;
+      background: var(--sand);
+      color: var(--ink);
+      padding: 0.5rem 1rem 1rem;
+      border-top: 3px solid var(--umber);
+    }
+    .mqtt-band h2 {
+      font-size: 11px;
+      margin: 0 0 0.5rem;
+      font-family: "IBM Plex Mono", monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .strip {
+      display: flex;
+      align-items: flex-end;
+      height: 56px;
+      gap: 2px;
+      margin-top: 4px;
+    }
+    .strip span {
+      flex: 1;
+      min-width: 3px;
+      background: var(--ink);
+      opacity: 0.35;
+      border-radius: 1px 1px 0 0;
+    }
+    .strip span:nth-child(5n) { opacity: 0.55; height: 70% !important; }
+    .strip span.anom { background: var(--umber); opacity: 1; height: 100% !important; }
+    .legend { font-size: 10px; margin-top: 6px; color: var(--ink); opacity: 0.85; }
+    a.api { color: var(--umber); margin-left: auto; font-size: 10px; }
+    .header-row { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <header class="status-rail">
+    <span class="label">État</span>
+    <span><span class="dot dot-ok"></span>Broker MQTT</span>
+    <span><span class="dot dot-ok"></span>GET /health</span>
+    <span><span class="dot dot-warn"></span>Dernier ingest · il y a 3 min</span>
+    <a class="api" href="#">OpenAPI /docs</a>
+  </header>
+
+  <div class="main-grid">
+    <aside class="alarm-ticker">
+      <h2>SCADA · anomalies</h2>
+      <div class="alarm-line critical">
+        <span class="ts">20/04/26 08:49:07</span>
+        OVERFLOW_TEMP_HIGH · Chiller
+      </div>
+      <div class="alarm-line critical">
+        <span class="ts">20/04/26 06:32:37</span>
+        T4xx.2 · Chambre combustion (S)
+      </div>
+      <div class="alarm-line">
+        <span class="ts">20/04/26 06:34:07</span>
+        ENGINE IN PARALLEL MODE
+      </div>
+      <div class="alarm-line">
+        <span class="ts">20/04/26 01:55:52</span>
+        WCCRT · connexion GAMMA/ALPHA
+      </div>
+      <p style="margin-top:1rem;font-size:10px;color:var(--umber);border-top:1px solid var(--umber);padding-top:0.5rem;">Pending strip</p>
+      <div class="alarm-line critical">
+        <span class="ts">—</span>
+        ABSO_PUMP_NOT_RESPOND · Chiller
+      </div>
+    </aside>
+
+    <main class="center">
+      <div class="header-row">
+        <h1 class="section-title" style="font-size:18px;margin:0;">STEG · électricité</h1>
+        <span class="sub">Septembre 2025 · données extraites · parser_path: vision_v1</span>
+      </div>
+
+      <p class="sub">CTR 3738358 · Énergie injectée (grid_injection)</p>
+      <table class="ledger">
+        <thead>
+          <tr>
+            <th>Créneau</th>
+            <th>Code</th>
+            <th>Ancien</th>
+            <th>Nouveau</th>
+            <th>Δ kWh</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Jour</td><td>2.8.3</td><td>1&nbsp;824&nbsp;093</td><td>1&nbsp;877&nbsp;972</td><td>53&nbsp;879</td></tr>
+          <tr><td>Pointe</td><td>2.8.2</td><td>542&nbsp;758</td><td>562&nbsp;293</td><td>19&nbsp;535</td></tr>
+          <tr><td>Nuit</td><td>2.8.1</td><td>2&nbsp;476&nbsp;108</td><td>2&nbsp;585&nbsp;455</td><td>109&nbsp;347</td></tr>
+          <tr><td>Soir</td><td>2.8.4</td><td>107&nbsp;422</td><td>107&nbsp;424</td><td>2</td></tr>
+        </tbody>
+      </table>
+
+      <p class="sub">CTR 61971444 · Énergie produite (onsite_generation)</p>
+      <table class="ledger">
+        <thead>
+          <tr>
+            <th>Créneau</th>
+            <th>Code</th>
+            <th>Ancien</th>
+            <th>Nouveau</th>
+            <th>Δ kWh</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Jour</td><td>6.8.3</td><td>12&nbsp;223</td><td>12&nbsp;311</td><td>88</td></tr>
+          <tr><td>Pointe</td><td>6.8.2</td><td>36&nbsp;024</td><td>36&nbsp;131</td><td>107</td></tr>
+          <tr><td>Nuit</td><td>6.8.1</td><td>47&nbsp;450</td><td>47&nbsp;646</td><td>196</td></tr>
+          <tr><td>Soir</td><td>6.8.4</td><td>4&nbsp;250</td><td>4&nbsp;250</td><td>0</td></tr>
+          <tr class="reactive">
+            <td colspan="2">Réactive (hors bilan kWh actif)</td>
+            <td>11&nbsp;788&nbsp;849</td>
+            <td>12&nbsp;580&nbsp;185</td>
+            <td>791&nbsp;336</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="mid-row">
+        <div>
+          <h2 class="section-title">SONEDE · fév. 2023</h2>
+          <p class="sub">3&nbsp;633 m³ · coûts HT extraits</p>
+        </div>
+        <div class="ladder">
+          <h3>Normalisation gaz</h3>
+          <div class="ladder-step"><span class="arrow">↓</span> <strong>204&nbsp;884</strong> NM³</div>
+          <div class="ladder-step"><span class="arrow">×</span> PCS <strong>10,079</strong> <span style="color:var(--umber)">(facteur)</span></div>
+          <div class="ladder-step"><span class="arrow">→</span> <strong>1&nbsp;782&nbsp;471</strong> TH <em style="color:var(--umber)">autoritaire</em></div>
+          <div class="ladder-step"><span class="arrow">×</span> 1,163 kWh/TH <span style="color:var(--umber)">(défaut)</span></div>
+          <div class="ladder-step"><span class="arrow">→</span> <strong>≈ 2,07×10⁶</strong> kWh</div>
+          <div class="ladder-step"><span class="arrow">→</span> Scope 1 CO₂ <strong>~418 t</strong> <span style="color:var(--umber);font-size:9px;">method_note</span></div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="sonede-col">
+      <h2>Eau · TND</h2>
+      <p style="margin:0 0 4px;">Consommation HT<br /><strong>7&nbsp;265,503</strong></p>
+      <p style="margin:0 0 4px;">Assainissement HT<br /><strong>6&nbsp;294,106</strong></p>
+      <p style="margin:0.75rem 0 4px;">Net TTC<br /><strong>14&nbsp;940,054</strong></p>
+      <p class="sub" style="margin-top:0.75rem;">Répartition HT</p>
+      <div class="bar-split" title="7265 vs 6294">
+        <div class="a"></div>
+        <div class="b"></div>
+      </div>
+      <p style="font-size:9px;color:var(--umber);">Barres = valeurs extraites, non figées 54/46</p>
+    </aside>
+
+    <footer class="mqtt-band">
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <h2 style="margin:0;">MQTT · bande live (‖accel‖ + temp)</h2>
+      </div>
+      <div class="strip" aria-hidden="true">
+        <!-- pseudo oscillograph heights -->
+        <span style="height:32%"></span><span style="height:48%"></span><span style="height:41%"></span><span style="height:55%"></span><span style="height:38%"></span>
+        <span style="height:62%"></span><span style="height:44%"></span><span style="height:51%"></span><span style="height:36%"></span><span class="anom" style="height:95%"></span>
+        <span style="height:40%"></span><span style="height:47%"></span><span style="height:53%"></span><span style="height:39%"></span><span style="height:58%"></span>
+        <span style="height:45%"></span><span style="height:50%"></span><span style="height:42%"></span><span style="height:56%"></span><span style="height:49%"></span>
+        <span style="height:44%"></span><span style="height:52%"></span><span style="height:37%"></span><span style="height:61%"></span><span style="height:43%"></span>
+      </div>
+      <p class="legend">Encoche marron = edge_anomaly · device_id ADWYA-CHILLER-01 · fw 1.0.0</p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+# Unit conversion factors to kWh (canonical). See plan_part2 §11.
+conversions:
+  kWh:
+    factor: 1.0
+    unit_type: thermal
+    source: definition
+  MWh:
+    factor: 1000.0
+    unit_type: thermal
+    source: definition
+  GWh:
+    factor: 1000000.0
+    unit_type: thermal
+    source: definition
+  GJ:
+    factor: 0.277778
+    unit_type: thermal
+    source: ITU_R_100
+  Gcal:
+    factor: 1163.0
+    unit_type: thermal
+    source: ITU_R_100
+  BTU:
+    factor: 0.000293071
+    unit_type: thermal
+    source: NIST
+  toe:
+    factor: 11630.0
+    unit_type: thermal
+    source: IEA
+  TH:
+    factor: 1.163
+    unit_type: thermal
+    source: default
+  NM3:
+    factor: 0.01163
+    unit_type: volume
+    note: "Fallback only when TH missing; prefer bill TH * factor TH"
+
+pcs_factors:
+  default: 10.079
+  source: STEG standard
+
+bill_overrides:
+  gas_may_2024:
+    nm3_delta: 204884
+    pcs: 10.079
+    th_printed: 1782471
+
+tolerances:
+  th_vs_nm3_pcs:
+    max_deviation_percent: 2.0

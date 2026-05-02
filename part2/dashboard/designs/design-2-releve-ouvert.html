@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eco-Edge — Design 2 · Relevé ouvert</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200..900;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sand: #BBAB8C;
+      --umber: #776B5D;
+      --ink: #282A3A;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--sand);
+      color: var(--ink);
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 17px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .page {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 32vw);
+      min-height: 100vh;
+    }
+    .paper {
+      padding: 3rem 8% 4rem 10%;
+      max-width: 900px;
+    }
+    .kicker {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--umber);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(2.5rem, 5vw, 3.75rem);
+      font-weight: 700;
+      line-height: 1.05;
+      margin: 0 0 1.5rem;
+      color: var(--ink);
+    }
+    .hero-num {
+      font-family: "Fraunces", serif;
+      font-size: clamp(4rem, 12vw, 7rem);
+      font-weight: 200;
+      letter-spacing: -0.03em;
+      display: block;
+      margin: 0.25rem 0 0.5rem;
+      color: var(--ink);
+    }
+    .hero-unit { font-size: 1.25rem; color: var(--umber); font-style: italic; }
+    .caption {
+      font-size: 14px;
+      color: var(--umber);
+      max-width: 36em;
+      margin-bottom: 2.5rem;
+    }
+    .slots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem 2rem;
+      margin: 2rem 0;
+      align-items: flex-end;
+    }
+    .slot {
+      flex: 1 1 100px;
+      min-width: 80px;
+    }
+    .slot label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--umber);
+      margin-bottom: 4px;
+    }
+    .spark {
+      height: 36px;
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .spark i {
+      flex: 1;
+      background: var(--umber);
+      border-radius: 1px;
+      opacity: 0.45;
+    }
+    .slot:nth-child(1) .spark i:nth-child(-n+8) { opacity: 0.9; height: 90% !important; }
+    .slot:nth-child(2) .spark i:nth-child(-n+3) { opacity: 0.85; height: 70% !important; }
+    .slot:nth-child(3) .spark i:nth-child(-n+12) { opacity: 0.95; height: 100% !important; }
+    .slot:nth-child(4) .spark i:nth-child(-n+1) { opacity: 0.35; height: 25% !important; }
+    .slot:nth-child(1) .spark i { height: 55%; }
+    .slot:nth-child(2) .spark i { height: 40%; }
+    .slot:nth-child(3) .spark i { height: 65%; }
+    .slot:nth-child(4) .spark i { height: 20%; }
+    .fold {
+      margin-top: 3.5rem;
+      padding-top: 2rem;
+      border-top: 2px solid var(--umber);
+    }
+    .fold h2 {
+      font-family: "Fraunces", serif;
+      font-size: 1.75rem;
+      margin: 0 0 1rem;
+    }
+    .gas-infographic {
+      margin-top: 1.5rem;
+      position: relative;
+      height: 120px;
+      border: 1px solid var(--ink);
+    }
+    .gas-th {
+      position: absolute;
+      left: 0;
+      top: 24px;
+      height: 48px;
+      width: 88%;
+      background: var(--umber);
+      opacity: 0.85;
+    }
+    .gas-nm3 {
+      position: absolute;
+      left: 0;
+      bottom: 16px;
+      height: 3px;
+      width: 72%;
+      background: var(--ink);
+    }
+    .gas-labels {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      font-size: 12px;
+      text-align: right;
+      color: var(--umber);
+    }
+    .sonede-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 1.5rem;
+    }
+    .sonede-pair .big {
+      font-family: "Fraunces", serif;
+      font-size: 2.25rem;
+      margin: 0.25rem 0;
+    }
+    .rule-between {
+      grid-column: 1 / -1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--umber), transparent);
+      margin: 0.5rem 0;
+    }
+    .scada-foot {
+      position: sticky;
+      bottom: 0;
+      margin-top: 2rem;
+      padding: 1rem 1.25rem;
+      background: var(--umber);
+      color: var(--sand);
+      font-size: 14px;
+    }
+    .scada-foot strong { font-family: "Fraunces", serif; font-size: 1.1rem; display: block; margin-bottom: 4px; }
+    .scada-foot .ts { font-size: 12px; opacity: 0.9; }
+
+    .rail {
+      background: var(--ink);
+      color: var(--sand);
+      padding: 1.25rem 1rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .rail h2 {
+      font-family: "Fraunces", serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 1rem;
+      color: var(--sand);
+    }
+    .transcript {
+      flex: 1;
+      overflow-y: auto;
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      border: 1px solid rgba(187, 171, 140, 0.25);
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .transcript .key { color: var(--umber); }
+    .transcript .str { color: var(--sand); }
+    .transcript .anom {
+      background: rgba(187, 171, 140, 0.15);
+      display: block;
+      margin: 0.35rem 0;
+      padding: 0.35rem;
+      border-left: 3px solid var(--sand);
+    }
+    .rail a { color: var(--sand); font-size: 12px; opacity: 0.85; }
+    @media (max-width: 800px) {
+      .page { grid-template-columns: 1fr; }
+      .rail { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <article class="paper">
+      <p class="kicker">ADWYA · STEG · septembre 2025</p>
+      <h1>Énergie injectée sur réseau</h1>
+      <span class="hero-num">184&nbsp;763</span>
+      <span class="hero-unit">kWh · somme des quatre créneaux (CTR 3738358)</span>
+      <p class="caption">
+        Lecture facture : injectée vs produite restent deux fils distincts. La ligne réactive n’entre pas dans ce total actif — voir schéma pipeline.
+      </p>
+
+      <div class="slots">
+        <div class="slot">
+          <label>Jour</label>
+          <div class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="slot">
+          <label>Pointe</label>
+          <div class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="slot">
+          <label>Nuit</label>
+          <div class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="slot">
+          <label>Soir</label>
+          <div class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+
+      <section class="fold">
+        <h2>Gaz naturel · mai 2024</h2>
+        <p class="caption">TH facturé comme référence énergétique ; NM³ et PCS affichés en annotation.</p>
+        <div class="gas-infographic">
+          <div class="gas-th"></div>
+          <div class="gas-nm3"></div>
+          <div class="gas-labels">1&nbsp;782&nbsp;471 TH<br />204&nbsp;884 NM³ · PCS 10,079</div>
+        </div>
+      </section>
+
+      <section class="fold">
+        <h2>SONEDE · frais HT</h2>
+        <div class="sonede-pair">
+          <div>
+            <p style="margin:0;color:var(--umber);font-size:13px;">Consommation eau</p>
+            <p class="big">7&nbsp;265,503</p>
+            <p style="margin:0;color:var(--umber);">TND HT</p>
+          </div>
+          <div>
+            <p style="margin:0;color:var(--umber);font-size:13px;">Assainissement</p>
+            <p class="big">6&nbsp;294,106</p>
+            <p style="margin:0;color:var(--umber);">TND HT</p>
+          </div>
+          <div class="rule-between"></div>
+          <div style="grid-column:1/-1;">
+            <p style="margin:0;color:var(--umber);">Net à payer TTC</p>
+            <p class="big" style="margin-top:0.25rem;">14&nbsp;940,054 TND</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="scada-foot">
+        <span class="ts">20/04/26 08:49:07 · Chiller</span>
+        <strong>OVERFLOW_TEMP_HIGH</strong>
+        <span class="ts" style="margin-top:0.75rem;display:block;">Pending · ABSO_PUMP_NOT_RESPOND</span>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <h2>Fil live MQTT</h2>
+      <div class="transcript">
+        <span class="key">"timestamp"</span>: <span class="str">"2026-05-02T03:45:12+01:00"</span>,<br />
+        <span class="key">"device_id"</span>: <span class="str">"ADWYA-CHILLER-01"</span>,<br />
+        <span class="key">"sensors"</span>: { … temp_c: 35.5 … }<br />
+        <span class="anom">"edge_anomaly": true  ← flag edge</span>
+        <span class="key">"meta"</span>: { "fw": "1.0.0", "uptime_s": 12345 }
+      </div>
+      <p style="font-size:13px;line-height:1.4;margin:0 0 1rem;opacity:0.9;">Zone sombre = données rapides ; page sable = documents et périodes lentes.</p>
+      <a href="#">GET /unified · OpenAPI</a>
+    </aside>
+  </div>
+</body>
+</html>

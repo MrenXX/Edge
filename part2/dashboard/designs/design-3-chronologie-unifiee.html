@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eco-Edge — Design 3 · Chronologie unifiée</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bellefair&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sand: #BBAB8C;
+      --umber: #776B5D;
+      --ink: #282A3A;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--ink);
+      color: var(--sand);
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 12px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--umber);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    header .brand {
+      font-family: "Bellefair", Georgia, serif;
+      font-size: 22px;
+      letter-spacing: 0.06em;
+      color: var(--sand);
+    }
+    header .meta { color: var(--umber); font-size: 11px; }
+    .board {
+      flex: 1;
+      padding: 1.5rem 4vw 100px;
+      position: relative;
+    }
+    .spine {
+      position: absolute;
+      left: 50%;
+      top: 2rem;
+      bottom: 5rem;
+      width: 3px;
+      background: var(--umber);
+      transform: translateX(-50%);
+      border-radius: 2px;
+    }
+    .nodes {
+      position: relative;
+      max-width: 920px;
+      margin: 0 auto;
+      padding-left: 48%;
+    }
+    .node {
+      position: relative;
+      margin-bottom: 2.5rem;
+      padding-left: 1.25rem;
+      border-left: 2px solid var(--sand);
+      margin-left: 8px;
+    }
+    .node::before {
+      content: "";
+      position: absolute;
+      left: -11px;
+      top: 4px;
+      width: 14px;
+      height: 14px;
+      background: var(--sand);
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px var(--umber);
+    }
+    .node .period {
+      font-family: "Bellefair", serif;
+      font-size: 20px;
+      color: var(--sand);
+      margin: 0 0 0.25rem;
+    }
+    .node .type { color: var(--umber); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.5rem; }
+    .node .detail { color: rgba(187, 171, 140, 0.9); max-width: 42em; line-height: 1.5; }
+    .node .flags { margin-top: 0.5rem; font-size: 10px; color: var(--umber); }
+    .ribbons {
+      display: flex;
+      gap: 4px;
+      margin-top: 0.75rem;
+      height: 20px;
+      max-width: 280px;
+    }
+    .ribbons .seg { flex: 1; background: var(--umber); opacity: 0.5; border-radius: 1px; }
+    .ribbons .seg.hl { opacity: 1; background: var(--sand); }
+    .node.alt {
+      margin-left: 0;
+      padding-left: 0;
+      padding-right: 52%;
+      border-left: none;
+      border-right: 2px solid var(--sand);
+      text-align: right;
+    }
+    .node.alt::before {
+      left: auto;
+      right: calc(50% - 7px);
+    }
+    .node.alt .ribbons { margin-left: auto; }
+    .footnote {
+      font-size: 10px;
+      color: var(--umber);
+      margin-top: 0.35rem;
+      font-style: italic;
+    }
+    .live-micro {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      background: rgba(40, 42, 58, 0.97);
+      border-top: 2px solid var(--sand);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .live-micro .label {
+      font-size: 10px;
+      color: var(--umber);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .micro-spine {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 32px;
+    }
+    .micro-spine span {
+      flex: 1;
+      height: 40%;
+      background: var(--umber);
+      border-radius: 1px;
+      opacity: 0.6;
+    }
+    .micro-spine span:nth-child(7),
+    .micro-spine span:nth-child(15) { height: 85%; background: var(--sand); opacity: 0.9; }
+    .left-labels {
+      position: absolute;
+      right: 52%;
+      top: 2rem;
+      width: 42%;
+      text-align: right;
+      padding-right: 1.5rem;
+      color: var(--umber);
+      font-size: 10px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Chronologie unifiée</span>
+    <span class="meta">Périodes documents + agrégats IoT · GET /unified (mock)</span>
+    <span class="meta" style="margin-left:auto;"><a href="#" style="color:var(--sand);">/docs</a></span>
+  </header>
+
+  <div class="board">
+    <div class="spine" aria-hidden="true"></div>
+    <div class="left-labels">
+      Fusion logicielle<br />
+      period_start → period_end<br />
+      IoT: moyenne temp · max ‖a‖ · taux anomalies
+    </div>
+
+    <div class="nodes">
+      <article class="node">
+        <p class="period">1 — 30 sept. 2025</p>
+        <p class="type">STEG électricité · parser_path: hybrid_pdf</p>
+        <p class="detail">Injection CTR 3738358 vs production CTR 61971444. Réactive isolée du bilan kWh actif.</p>
+        <div class="ribbons" title="Jour Pointe Nuit Soir — largeurs ∝ kWh">
+          <div class="seg hl" style="flex:53"></div>
+          <div class="seg hl" style="flex:19"></div>
+          <div class="seg hl" style="flex:109"></div>
+          <div class="seg" style="flex:2"></div>
+        </div>
+        <p class="flags">validation: OK · confidence 0.82</p>
+      </article>
+
+      <article class="node alt">
+        <p class="period">1 — 31 mai 2024</p>
+        <p class="type">Gaz STEG · TH autoritaire</p>
+        <p class="detail">~2,07×10⁶ kWh normalisés → Scope 1 ≈ 418 t CO₂e (facteur config).</p>
+        <p class="footnote">method_note: facteur gaz défaut documentation README</p>
+        <p class="flags">TH vs NM³×PCS : dans tolérance</p>
+      </article>
+
+      <article class="node">
+        <p class="period">févr. 2023</p>
+        <p class="type">SONEDE · eau</p>
+        <p class="detail">3&nbsp;633 m³ · split coûts HT issu extraction (pas de fusion silencieuse avec kWh).</p>
+        <p class="flags">raw_warnings: []</p>
+      </article>
+
+      <article class="node alt">
+        <p class="period">20 avr. 2026</p>
+        <p class="type">SCADA · anomalies</p>
+        <p class="detail">OVERFLOW_TEMP_HIGH · CHILLER · critical — aligné piste bonus anomalies.</p>
+      </article>
+    </div>
+  </div>
+
+  <footer class="live-micro">
+    <span class="label">Micro-chronologie live · 15 dernières minutes (MQTT)</span>
+    <div class="micro-spine" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,40 @@
+# Part 2 — document extraction (Gemini)
+
+PDFs → PNG (PyMuPDF) → **Gemini** (`google-genai`) → validated JSON per [plan_part2.md](../plan_part2.md).
+
+## Setup
+
+```powershell
+cd d:\jects\Edge\part2\pipeline
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Run
+
+Default input folder: repo `data factures et diverses-…/data factures et diverses`.
+
+```powershell
+python -m energy_extract
+```
+
+**Explicit files (PDF / JPEG / PNG / WebP), parallel:**
+
+```powershell
+python -m energy_extract --files "D:\jects\Edge\a.jpeg" "D:\jects\Edge\b.jpeg" --out-dir .\out --parallel 3
+```
+
+Options: `--data-dir`, `--out-dir`, `--max-pages`, `--model`, `--files`, `--parallel`.
+
+Outputs: `out/<pdf-stem>.json` and `out/extraction_audit.jsonl`.
+
+Optional env: `GEMINI_API_KEY` (overrides built-in demo key), `GEMINI_MODEL` (default `gemini-2.0-flash` for free-tier quota).
+
+## Layout
+
+- `energy_extract/models.py` — schema
+- `energy_extract/pdf_render.py` — PDF → PNG
+- `energy_extract/gemini_extract.py` — API + JSON
+- `energy_extract/env_loader.py` — optional `.env` (repo / part2 / pipeline)
+- `energy_extract/pipeline.py`, `energy_extract/cli.py`

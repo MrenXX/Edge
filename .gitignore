@@ -1,5 +1,25 @@
+.env
+.env.*
+!.env.example
 *.log
 .DS_Store
 Thumbs.db
 desktop.ini
 WhatsApp*.jpeg
+
+# Python / local dev
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Large local assets (keep out of git)
+Edge.rar
+*.mkv
+*.mp4
+buffer_*.png
+data factures et diverses-*/

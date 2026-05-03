@@ -21,21 +21,14 @@ from energy_extract import PROMPT_VERSION
 from energy_extract.coerce import normalize_numbers
 from energy_extract.models import ExtractedDocument
 
-# Fallback when env is unset (env vars still take precedence).
-_EMBEDDED_GEMINI_API_KEY = "AIzaSyAdYFhukPFP3tSnrrwRgo3DfXi1D_kKwPs"
-
 
 def _api_key() -> str:
-    key = (
-        os.environ.get("GEMINI_API_KEY")
-        or os.environ.get("GOOGLE_API_KEY")
-        or _EMBEDDED_GEMINI_API_KEY
-    )
-    key = (key or "").strip()
+    # Keys must come from env only — embedded keys get flagged as leaked by Google.
+    key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
     if not key:
         raise RuntimeError(
-            "Missing Gemini API key: set GEMINI_API_KEY or GOOGLE_API_KEY "
-            "(see part2/pipeline/.env.example)."
+            "Missing Gemini API key: copy part2/.env.example → part2/.env and set "
+            "GEMINI_API_KEY or GOOGLE_API_KEY (see part2/pipeline/.env.example)."
         )
     return key
 

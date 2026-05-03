@@ -8,15 +8,37 @@ import re
 import time
 from pathlib import Path
 
-from google import genai
-from google.genai import types
+try:
+    from google import genai
+    from google.genai import types
+except ImportError as e:
+    raise ImportError(
+        "Install the Gemini SDK: `pip install google-genai` "
+        "(and use the same environment you run Streamlit from)."
+    ) from e
 
 from energy_extract import PROMPT_VERSION
 from energy_extract.coerce import normalize_numbers
 from energy_extract.models import ExtractedDocument
 
-# Demo / hackathon ship: env `GEMINI_API_KEY` or `GOOGLE_API_KEY` overrides when set.
-_EMBEDDED_GEMINI_API_KEY = "AIzaSyA-kooCZuSwSvVASxV_d87tEUf-x3AgJ38"
+# Fallback when env is unset (env vars still take precedence).
+_EMBEDDED_GEMINI_API_KEY = "AIzaSyAdYFhukPFP3tSnrrwRgo3DfXi1D_kKwPs"
+
+
+def _api_key() -> str:
+    key = (
+        os.environ.get("GEMINI_API_KEY")
+        or os.environ.get("GOOGLE_API_KEY")
+        or _EMBEDDED_GEMINI_API_KEY
+    )
+    key = (key or "").strip()
+    if not key:
+        raise RuntimeError(
+            "Missing Gemini API key: set GEMINI_API_KEY or GOOGLE_API_KEY "
+            "(see part2/pipeline/.env.example)."
+        )
+    return key
+
 
 SYSTEM_INSTRUCTION = """You are an expert at reading Tunisian industrial utility documents (STEG electricity, STEG gas, SONEDE water) and SCADA/HMI alarm screenshots for SOCIETE ADWYA or similar sites.
 You receive one or more PNG images (pages of a PDF or a screen capture). Extract ALL numerically relevant fields you can see.
@@ -88,17 +110,9 @@ JSON shape (all keys optional except source_file and document_family where possi
 """
 
 
-def _api_key() -> str:
-    return (
-        os.environ.get("GEMINI_API_KEY")
-        or os.environ.get("GOOGLE_API_KEY")
-        or _EMBEDDED_GEMINI_API_KEY
-    )
-
-
 def _default_model_id() -> str:
-    # `gemini-flash-latest` can map to gemini-3-flash with a very low free-tier RPM; 2.0 is a separate quota bucket.
-    return os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    # Match curl / v1beta `gemini-flash-latest`; override with GEMINI_MODEL (e.g. gemini-2.0-flash) if needed.
+    return os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
 
 
 def _strip_json_fences(text: str) -> str:

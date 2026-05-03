@@ -1,6 +1,9 @@
 .env
 .env.*
 !.env.example
+!part2/.env.example
+!part2/mqtt_merge/.env.example
+!part2/pipeline/.env.example
 *.log
 .DS_Store
 Thumbs.db
@@ -23,3 +26,4 @@ Edge.rar
 *.mp4
 buffer_*.png
 data factures et diverses-*/
+part2/part2_updated.zip

@@ -11,6 +11,8 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+Copy [`.env.example`](.env.example) to `.env` and set **`GEMINI_API_KEY`** or **`GOOGLE_API_KEY`** (required for live calls).
+
 ## Run
 
 Default input folder: repo `data factures et diverses-…/data factures et diverses`.
@@ -29,7 +31,7 @@ Options: `--data-dir`, `--out-dir`, `--max-pages`, `--model`, `--files`, `--para
 
 Outputs: `out/<pdf-stem>.json` and `out/extraction_audit.jsonl`.
 
-Optional env: `GEMINI_API_KEY` (overrides built-in demo key), `GEMINI_MODEL` (default `gemini-2.0-flash` for free-tier quota).
+Env: **`GEMINI_API_KEY` or `GOOGLE_API_KEY`** (required), **`GEMINI_MODEL`** (default `gemini-flash-latest`; try `gemini-2.0-flash` if quota or routing issues), **`GEMINI_MAX_PAGES`**.
 
 ## Layout
 

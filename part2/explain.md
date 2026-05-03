@@ -2,7 +2,9 @@
 
 This document is for the **dashboard / frontend** agent: where structured bill data lives today, the **JSON contract**, and **real outputs** from successful PDF runs (hackathon path: Gemini vision → one JSON file per source document).
 
-There is **no HTTP API for extraction yet** (FastAPI `/ingest` / `/unified` from [plan_part2.md](plan_part2.md) is still to-do). Until then, the UI should treat **`part2/pipeline/out/*.json`** as the backend result surface (static files, copy into `public/`, or serve via a tiny static file server / future API).
+There is an HTTP **unified API** under [`part2/api/`](api/) (`GET /unified`, `/documents`, `/health`, …) — see [`part2/README.md`](README.md) and `docker-compose.yml`.
+
+The **Streamlit** app under `part2/dashboard/` can run **drag-and-drop extraction** in the browser (same Gemini stack as the CLI: `GEMINI_API_KEY` / `GOOGLE_API_KEY`, `pip install -r part2/dashboard/requirements.txt`). You can still treat **`part2/pipeline/out/*.json`** as the on-disk result surface for any UI.
 
 ---
 

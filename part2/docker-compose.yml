@@ -1,0 +1,51 @@
+# Part 2 — `docker compose up --build` from this directory.
+#
+# - mqtt_merge: Part 1 telemetry → SQLite (http://localhost:8000)
+# - api: unified FastAPI — /health, /documents, /unified, /ingest, /metrics (http://localhost:8080)
+#
+# Copy `.env.example` → `.env` and set GOOGLE_API_KEY for POST /ingest.
+
+services:
+  mqtt_merge:
+    build: ./mqtt_merge
+    container_name: ecoedge-mqtt-merge
+    ports:
+      - "8000:8000"
+    environment:
+      MQTT_BROKER_HOST: broker.hivemq.com
+      MQTT_BROKER_PORT: "1883"
+      MQTT_TOPIC: telemetry/ADWYA-CHILLER-01
+      MQTT_MERGE_DB_PATH: /app/data/iot_data.db
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+      LOG_LEVEL: INFO
+    volumes:
+      - mqtt_data:/app/data
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: ecoedge-part2-api
+    ports:
+      - "8080:8080"
+    environment:
+      DATASET_ROOT: /data
+      OUT_DIR: /data/out
+      INCOMING_DIR: /data/incoming
+      PDF_BATCH_DIR: /data/pdfs
+      PIPELINE_ROOT: /app/pipeline
+      PYTHONPATH: /app/pipeline:/app
+      MQTT_MERGE_URL: http://mqtt_merge:8000
+      API_VERSION: 0.1.0
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
+    volumes:
+      - ./pipeline/out:/data/out
+      - ./data/incoming:/data/incoming
+      - ./data/pdfs:/data/pdfs
+    depends_on:
+      - mqtt_merge
+
+volumes:
+  mqtt_data:

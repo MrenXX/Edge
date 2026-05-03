@@ -16,7 +16,9 @@ This branch carries **Part 2** of Eco-Edge (Re·Tech Fusion): bill/SCADA **extra
 
 4. **Streamlit dashboard (`part2/dashboard/`)** — Loads validated extraction JSON from `part2/pipeline/out/*.json` (see [`explain.md`](explain.md)). The right column calls the merge API (default **`http://127.0.0.1:8000`**) on a short interval and shows readings, anomaly rate, and a **recent messages** table.
 
-5. **Pipeline (`part2/pipeline/`)** — `energy_extract` CLI uses Gemini (see `pipeline/README.md`) to turn PDF bills into structured JSON; optional **`ConversionEngine`** + `config/conversions.yaml` normalizes gas TH → kWh, etc.
+5. **Unified Part 2 API (`part2/api/`)** — FastAPI service (plan §15) with **`GET /health`**, **`GET /documents`**, **`GET /unified`** (documents + IoT strip + rollups), **`GET /metrics`**, **`POST /ingest`** (Gemini extraction — needs `GOOGLE_API_KEY`), **`/docs`**. It reads JSON from `pipeline/out/` and pulls live IoT aggregates from the **MQTT merge** service over HTTP (`MQTT_MERGE_URL`).
+
+6. **Pipeline (`part2/pipeline/`)** — `energy_extract` CLI uses Gemini (see `pipeline/README.md`) to turn PDF bills into structured JSON; optional **`ConversionEngine`** + `config/conversions.yaml` normalizes gas TH → kWh, etc.
 
 ---
 
@@ -24,11 +26,14 @@ This branch carries **Part 2** of Eco-Edge (Re·Tech Fusion): bill/SCADA **extra
 
 | Step | Command / URL |
 |------|----------------|
-| Merge API | `cd part2/mqtt_merge` → copy `.env.example` to `.env` if needed → `python -m uvicorn main:app --host 127.0.0.1 --port 8000` |
+| **Compose (recommended)** | From **`part2/`**: copy [`.env.example`](.env.example) → `.env`, set `GOOGLE_API_KEY` if you need **`POST /ingest`**, then **`docker compose up --build`**. **Merge** → [http://127.0.0.1:8000](http://127.0.0.1:8000) · **Unified API** → [http://127.0.0.1:8080](http://127.0.0.1:8080) · OpenAPI → [http://127.0.0.1:8080/docs](http://127.0.0.1:8080/docs) |
+| Merge only | `cd part2/mqtt_merge` → `python -m uvicorn main:app --host 127.0.0.1 --port 8000` |
+| Unified API only | `cd part2` → `$env:PYTHONPATH=".;./pipeline"` (PowerShell) or `export PYTHONPATH=.:./pipeline` → `python -m uvicorn api.main:app --host 127.0.0.1 --port 8080` (merge must be reachable at `MQTT_MERGE_URL`) |
 | Dashboard | `cd part2/dashboard` → `python -m streamlit run app.py` → open the URL Streamlit prints (often `http://127.0.0.1:8501`) |
-| Docker merge | `cd part2/mqtt_merge` → `docker compose up --build` (API on host port **8000**) |
 
-In the dashboard **sidebar**, set **MQTT merge API base URL** to match where uvicorn listens (same machine: `http://127.0.0.1:8000`). Start **Wokwi** with the root `diagram.json` + `sketch.ino` so publishes hit the same broker/topic as the merge service.
+Compose mounts **`./pipeline/out` → `/data/out`** (read/write extraction JSON), **`./data/incoming`** uploads, **`./data/pdfs`** for batch ingest. Optional **Mosquitto** remains available via [`mqtt_merge/docker-compose.yml`](mqtt_merge/docker-compose.yml) profiles if you switch the firmware off public HiveMQ.
+
+In the dashboard **sidebar**, keep the **MQTT merge** base URL at **`http://127.0.0.1:8000`** when compose exposes both ports; wire the **unified** `GET /unified` to **`http://127.0.0.1:8080`** when you integrate the new frontend.
 
 ---
 
@@ -39,9 +44,11 @@ In the dashboard **sidebar**, set **MQTT merge API base URL** to match where uvi
 | [`plan_part2.md`](plan_part2.md) | Architecture, rubric, checklist vs cahier |
 | [`explain.md`](explain.md) | JSON contract for the UI, `out/` layout |
 | [`example_images_data_factures_et_diverses.md`](example_images_data_factures_et_diverses.md) | Sample bill / SCADA shapes for prompts |
-| `dashboard/` | Streamlit app, hybrid styling, MQTT rail |
-| `mqtt_merge/` | FastAPI + paho-mqtt + SQLite |
+| `dashboard/` | Streamlit (disk JSON + **drag-and-drop Gemini OCR**); install `dashboard/requirements.txt` for live upload |
+| `api/` | Unified FastAPI: `/unified`, `/documents`, `/ingest`, `/metrics`, `/docs` |
+| `mqtt_merge/` | FastAPI + paho-mqtt + SQLite (telemetry persistence) |
 | `pipeline/` | Extraction CLI, `out/*.json`, conversions |
+| [`docker-compose.yml`](docker-compose.yml) | **mqtt_merge** + **api** (§15 cold start) |
 
 **Also at repo root:** [`cahier_de_charge.md`](../cahier_de_charge.md), [`plan.md`](../plan.md), Part 1 [`README.md`](../README.md).
 

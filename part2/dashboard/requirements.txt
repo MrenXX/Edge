@@ -2,3 +2,8 @@ streamlit>=1.28.0
 pandas>=2.0.0
 pydantic>=2.0.0
 requests>=2.28.0
+# Drag-and-drop real-time OCR in the dashboard (Gemini + PDF rasterization; same stack as pipeline).
+google-genai>=1.0.0
+pymupdf>=1.24.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.0

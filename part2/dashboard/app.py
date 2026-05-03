@@ -1,12 +1,15 @@
 """
 Streamlit dashboard: extraction JSON from disk + optional MQTT merge API.
 Palette / layout: hybrid (Design 1 tables + Design 2 sand field). See design-hybrid-clarte-elegance.html.
+Adds: drag-and-drop real-time OCR via Gemini for ad-hoc bills / SCADA shots.
 """
 
 from __future__ import annotations
 
 import math
 import sys
+import tempfile
+from html import escape as html_escape
 from pathlib import Path
 
 import pandas as pd
@@ -25,6 +28,20 @@ if str(_PIPELINE) not in sys.path:
     sys.path.insert(0, str(_PIPELINE))
 
 from core.conversion_engine import ConversionEngine  # noqa: E402
+
+# Optional: real-time OCR uses google-genai + pymupdf (pipeline deps).
+# Wrap the import so the dashboard still loads even if the user only installed
+# the bare dashboard requirements; we then surface a friendly hint in the UI.
+try:
+    from energy_extract.gemini_extract import extract_document_path  # noqa: E402
+
+    _OCR_AVAILABLE = True
+    _OCR_IMPORT_ERROR: str | None = None
+except Exception as _ocr_err:  # pragma: no cover - depends on local install
+    extract_document_path = None  # type: ignore[assignment]
+    _OCR_AVAILABLE = False
+    _OCR_IMPORT_ERROR = str(_ocr_err)
+
 
 ROLE_FR = {
     "grid_injection": "Injection réseau",
@@ -98,17 +115,97 @@ def inject_css() -> None:
             background: rgba(255,255,255,0.55) !important;
           }
 
-          /* Remove “success green” feel on metrics / values */
+          /* Remove "success green" feel on metrics / values */
           [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
             color: #282A3A !important;
           }
 
-          /* Dataframes: no accent-green text; palette only */
-          [data-testid="stDataFrame"] *, [data-testid="stDataFrame"] [role="gridcell"] {
+          /* Inline `code` (markdown backticks) — palette umber, not the default green */
+          [data-testid="stMarkdownContainer"] code,
+          [data-testid="stCaptionContainer"] code,
+          .stMarkdown code {
+            color: #776B5D !important;
+            background: rgba(40,42,58,0.06) !important;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: ui-monospace, "Cascadia Code", monospace;
+            font-size: 0.88em;
+          }
+
+          /* Streamlit dataframe — bordered grid; font colors unchanged above */
+          [data-testid="stDataFrame"] {
+            border: 1px solid rgba(40,42,58,0.32) !important;
+            border-radius: 4px !important;
+            background: transparent !important;
+          }
+          [data-testid="stDataFrame"] [role="gridcell"],
+          [data-testid="stDataFrame"] [role="columnheader"] {
+            border-left: 1px solid rgba(40,42,58,0.18) !important;
+            border-top: 1px solid rgba(40,42,58,0.18) !important;
+          }
+          [data-testid="stDataFrame"] *,
+          [data-testid="stDataFrame"] [role="gridcell"] {
             color: #282A3A !important;
           }
+          [data-testid="stDataFrame"] [role="columnheader"],
+          [data-testid="stDataFrame"] [role="columnheader"] *,
+          [data-testid="stDataFrame"] thead th,
+          [data-testid="stDataFrame"] thead th * {
+            color: #282A3A !important;
+            font-weight: 700 !important;
+            font-family: "Fraunces", Georgia, serif !important;
+          }
           [data-testid="stDataFrame"] a { color: #776B5D !important; text-decoration: underline; }
-          [data-testid="stDataFrame"] { border: 1px solid rgba(40,42,58,0.2) !important; border-radius: 4px; }
+
+          /* HTML extraction tables — bordered grid */
+          .extract-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.35rem 0 0.9rem 0;
+            background: transparent;
+            font-family: "Newsreader", Georgia, serif;
+            border: 1px solid rgba(40,42,58,0.32);
+          }
+          .extract-table thead th {
+            color: #282A3A !important;
+            font-weight: 700;
+            font-family: "Fraunces", Georgia, serif;
+            text-align: left;
+            padding: 8px 12px;
+            background: rgba(40,42,58,0.10);
+            border: 1px solid rgba(40,42,58,0.26);
+            font-size: 0.92rem;
+            letter-spacing: 0.01em;
+          }
+          .extract-table tbody td {
+            color: #282A3A;
+            padding: 7px 12px;
+            border: 1px solid rgba(40,42,58,0.22);
+            font-size: 0.95rem;
+          }
+          .extract-table tbody tr:hover td { background: rgba(255,255,255,0.30); }
+
+          /* Markdown-rendered key/value tables (gas / amount blocks) */
+          [data-testid="stMarkdownContainer"] table {
+            border-collapse: collapse;
+            width: 100%;
+            border: 1px solid rgba(40,42,58,0.32) !important;
+            background: transparent !important;
+          }
+          [data-testid="stMarkdownContainer"] table thead th {
+            color: #282A3A !important;
+            font-weight: 700 !important;
+            font-family: "Fraunces", Georgia, serif !important;
+            background: rgba(40,42,58,0.10) !important;
+            border: 1px solid rgba(40,42,58,0.26) !important;
+            text-align: left !important;
+            padding: 7px 10px !important;
+          }
+          [data-testid="stMarkdownContainer"] table tbody td {
+            color: #282A3A !important;
+            border: 1px solid rgba(40,42,58,0.22) !important;
+            padding: 6px 10px !important;
+          }
 
           /* Global links — not Streamlit default green */
           a[href] { color: #776B5D !important; }
@@ -127,6 +224,32 @@ def inject_css() -> None:
             margin-bottom: 1.25rem;
             box-shadow: 0 1px 0 rgba(255,255,255,0.45) inset;
           }
+          .ocr-card {
+            background: rgba(255,255,255,0.42);
+            border: 1px dashed rgba(40,42,58,0.30);
+            border-radius: 6px;
+            padding: 1rem 1.2rem 0.6rem 1.2rem;
+            margin-bottom: 1.4rem;
+          }
+          .ocr-card h3 {
+            margin-top: 0 !important;
+            color: #282A3A !important;
+          }
+          .ocr-card p {
+            color: #776B5D !important;
+            margin-bottom: 0.4rem;
+          }
+
+          /* File uploader — paper, not steel-blue */
+          [data-testid="stFileUploaderDropzone"] {
+            background: rgba(255,255,255,0.55) !important;
+            border: 2px dashed rgba(40,42,58,0.35) !important;
+            border-radius: 5px !important;
+          }
+          [data-testid="stFileUploaderDropzone"] * {
+            color: #282A3A !important;
+          }
+
           .mqtt-rail {
             background: #282A3A;
             color: #BBAB8C;
@@ -155,6 +278,27 @@ def inject_css() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_html_table(df: pd.DataFrame) -> None:
+    """Render a dataframe as a styled HTML table (clear dark headers, no outer border)."""
+    if df.empty:
+        st.caption("— aucune ligne —")
+        return
+    head_cells = "".join(f"<th>{html_escape(str(c))}</th>" for c in df.columns)
+    body_rows: list[str] = []
+    for _, row in df.iterrows():
+        cells = "".join(
+            f"<td>{html_escape('' if pd.isna(v) else str(v))}</td>" for v in row.tolist()
+        )
+        body_rows.append(f"<tr>{cells}</tr>")
+    html = (
+        '<table class="extract-table">'
+        f"<thead><tr>{head_cells}</tr></thead>"
+        f"<tbody>{''.join(body_rows)}</tbody>"
+        "</table>"
+    )
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def fmt_num(v: float | int | None, decimals: int = 0) -> str:
@@ -211,7 +355,6 @@ def conversion_engine() -> ConversionEngine:
 
 def render_gas_block(gas) -> None:
     engine = conversion_engine()
-    th = gas.th_total
     kwh_r = engine.gas_bill_to_kwh(
         th_total=gas.th_total,
         nm3_delta=gas.nm3_delta,
@@ -221,28 +364,31 @@ def render_gas_block(gas) -> None:
     with c1:
         st.markdown("**Volumes & énergie**")
         kwh_line = fmt_num(kwh_r.converted_value_kwh, 0) if kwh_r else "—"
-        note = ""
-        if kwh_r and kwh_r.notes:
-            note = f" _({kwh_r.notes})_"
-        st.markdown(
-            f"| | |\n|-|-|\n"
-            f"| Δ NM³ | {fmt_num(gas.nm3_delta)} |\n"
-            f"| PCS | {fmt_num(gas.pcs, 3)} |\n"
-            f"| TH total | {fmt_num(gas.th_total)} |\n"
-            f"| Débit souscrit (th/h) | {fmt_num(gas.debit_souscrit_th_h)} |\n"
-            f"| **kWh (canonical)** | **{kwh_line}** |\n"
-            f"| factor_source | {kwh_r.factor_source if kwh_r else '—'} |{note}\n",
-            unsafe_allow_html=True,
+        gas_df = pd.DataFrame(
+            [
+                ["Δ NM³", fmt_num(gas.nm3_delta)],
+                ["PCS", fmt_num(gas.pcs, 3)],
+                ["TH total", fmt_num(gas.th_total)],
+                ["Débit souscrit (th/h)", fmt_num(gas.debit_souscrit_th_h)],
+                ["kWh (canonical)", kwh_line],
+                ["factor_source", (kwh_r.factor_source if kwh_r else "—")],
+            ],
+            columns=["Champ", "Valeur"],
         )
+        render_html_table(gas_df)
+        if kwh_r and kwh_r.notes:
+            st.caption(kwh_r.notes)
     with c2:
         st.markdown("**Montants TND**")
-        st.markdown(
-            f"| | |\n|-|-|\n"
-            f"| Coût HT | {fmt_num(gas.total_cost_ht_tnd, 3) if gas.total_cost_ht_tnd else '—'} |\n"
-            f"| Net à payer TTC | {fmt_num(gas.total_net_a_payer_ttc_tnd, 3) if gas.total_net_a_payer_ttc_tnd else '—'} |\n"
-            f"| Période (bloc gaz) | {gas.period_label or '—'} |\n",
-            unsafe_allow_html=True,
+        amounts_df = pd.DataFrame(
+            [
+                ["Coût HT", fmt_num(gas.total_cost_ht_tnd, 3) if gas.total_cost_ht_tnd else "—"],
+                ["Net à payer TTC", fmt_num(gas.total_net_a_payer_ttc_tnd, 3) if gas.total_net_a_payer_ttc_tnd else "—"],
+                ["Période (bloc gaz)", gas.period_label or "—"],
+            ],
+            columns=["Champ", "Valeur"],
         )
+        render_html_table(amounts_df)
     if (
         gas.th_total is not None
         and gas.nm3_delta is not None
@@ -257,7 +403,6 @@ def render_gas_block(gas) -> None:
             st.warning(
                 f"TH vs NM³×PCS deviation {v['deviation_percent']:.2f}% — review bill / PCS."
             )
-    st.caption("Normalization: `part2/pipeline/config/conversions.yaml` + `ConversionEngine` (step11).")
 
 
 def render_water_block(water) -> None:
@@ -286,13 +431,19 @@ def render_water_block(water) -> None:
 
 
 def render_scada(alarms) -> None:
+    rows = []
     for a in alarms:
-        sev = (a.severity or "unknown").upper()
-        st.markdown(
-            f"**{a.code or '—'}** · _{a.subsystem or '—'}_ · `{sev}`  \n"
-            f"<small>{a.timestamp or ''} — {a.message or ''}</small>",
-            unsafe_allow_html=True,
+        rows.append(
+            {
+                "Sévérité": (a.severity or "unknown").upper(),
+                "Code": a.code or "—",
+                "Sous-système": a.subsystem or "—",
+                "Horodatage": a.timestamp or "—",
+                "Message": a.message or "—",
+            }
         )
+    if rows:
+        render_html_table(pd.DataFrame(rows))
 
 
 def render_document(doc) -> None:
@@ -300,12 +451,12 @@ def render_document(doc) -> None:
     conf = f"{doc.confidence_0_1:.0%}" if doc.confidence_0_1 is not None else "—"
     st.markdown(
         f'<div class="doc-card">'
-        f"<h3 style='margin-top:0;color:#282A3A'>{doc.source_file}</h3>"
-        f"<p><span class='role-pill'>{fam}</span>"
+        f"<h3 style='margin-top:0;color:#282A3A'>{html_escape(doc.source_file or '')}</h3>"
+        f"<p><span class='role-pill'>{html_escape(fam)}</span>"
         f"<span class='role-pill'>confidence {conf}</span>"
-        f"<span class='role-pill'>{doc.parser_path}</span>"
-        f"<span class='role-pill'>{doc.prompt_version or '—'}</span></p>"
-        f"<p style='opacity:.88;color:#776B5D'>{doc.site_name or ''} · {doc.period_label or ''}</p></div>",
+        f"<span class='role-pill'>{html_escape(doc.parser_path or '')}</span>"
+        f"<span class='role-pill'>{html_escape(doc.prompt_version or '—')}</span></p>"
+        f"<p style='opacity:.88;color:#776B5D'>{html_escape(doc.site_name or '')} · {html_escape(doc.period_label or '')}</p></div>",
         unsafe_allow_html=True,
     )
 
@@ -318,9 +469,11 @@ def render_document(doc) -> None:
         for m in doc.electricity_meters:
             ctr = m.ctr_number or "—"
             st.markdown(
-                f"**CTR {ctr}** — _{role_label(m.meter_role)}_ · {m.section_title or ''} · {m.purchase_or_sale or ''}"
+                f"**CTR {html_escape(ctr)}** — _{html_escape(role_label(m.meter_role))}_ · "
+                f"{html_escape(m.section_title or '')} · {html_escape(m.purchase_or_sale or '')}",
+                unsafe_allow_html=True,
             )
-            st.dataframe(df_electricity_meter(m), use_container_width=True, hide_index=True)
+            render_html_table(df_electricity_meter(m))
 
     if doc.gas:
         st.markdown("#### Gaz")
@@ -333,6 +486,92 @@ def render_document(doc) -> None:
     if doc.scada_alarms:
         st.markdown("#### SCADA")
         render_scada(doc.scada_alarms)
+
+
+# ---------------------------------------------------------------------------
+# Real-time OCR upload section
+# ---------------------------------------------------------------------------
+
+_OCR_ACCEPTED = ["pdf", "png", "jpg", "jpeg", "webp"]
+
+
+def _run_ocr_on_upload(uploaded_file) -> "tuple[object | None, str | None]":
+    """Persist upload to a temp file, run extract_document_path, return (doc, error)."""
+    if not _OCR_AVAILABLE or extract_document_path is None:
+        return None, _OCR_IMPORT_ERROR or "OCR pipeline not available."
+    suffix = Path(uploaded_file.name).suffix.lower() or ".bin"
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(uploaded_file.getbuffer())
+            tmp_path = Path(tmp.name)
+        doc = extract_document_path(tmp_path)
+        try:
+            doc.source_file = uploaded_file.name
+        except Exception:
+            pass
+        return doc, None
+    except Exception as e:  # noqa: BLE001 — user-facing surface
+        return None, str(e)
+    finally:
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+def render_ocr_upload_section() -> None:
+    st.markdown(
+        '<div class="ocr-card">'
+        "<h3>Glisser-déposer · extraction temps réel</h3>"
+        "<p>Déposez une facture (STEG / SONEDE), un PDF de relevé ou une capture SCADA. "
+        "Le pipeline Gemini renverra un document structuré au-dessous.</p>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    if not _OCR_AVAILABLE:
+        st.error(
+            "Real-time OCR n'est pas disponible — installez le SDK dans **le même Python** que Streamlit : "
+            "`pip install google-genai` ou `pip install -r part2/dashboard/requirements.txt`."
+        )
+        if _OCR_IMPORT_ERROR:
+            with st.expander("Détails de l'import"):
+                st.code(_OCR_IMPORT_ERROR)
+        return
+
+    uploaded = st.file_uploader(
+        "Déposez un fichier ici (PDF, PNG, JPG, JPEG, WEBP)",
+        type=_OCR_ACCEPTED,
+        accept_multiple_files=False,
+        key="ocr_uploader",
+        label_visibility="collapsed",
+    )
+    if uploaded is None:
+        return
+
+    # Cache by file content so re-renders don't re-bill the API.
+    file_bytes = uploaded.getbuffer().tobytes()
+    cache: dict[int, object] = st.session_state.setdefault("_ocr_cache", {})
+    cache_key = hash(file_bytes)
+
+    if cache_key not in cache:
+        with st.spinner(f"Extraction Gemini de **{uploaded.name}**…"):
+            doc, err = _run_ocr_on_upload(uploaded)
+        if err:
+            st.error(f"Échec de l'extraction : {err}")
+            return
+        cache[cache_key] = doc  # type: ignore[assignment]
+    else:
+        doc = cache[cache_key]
+
+    fam = family_label(getattr(doc, "document_family", "unknown"))
+    conf_val = getattr(doc, "confidence_0_1", None)
+    conf_str = f"{conf_val:.0%}" if conf_val is not None else "n/a"
+    st.success(f"OK · famille **{fam}** · confiance **{conf_str}**")
+    render_document(doc)
+    st.divider()
 
 
 def _accel_norm_g(sensors: dict) -> str:
@@ -379,10 +618,9 @@ def render_mqtt_rail(api_base: str) -> None:
             f"""
             <div class="mqtt-rail">
             <h3>Live telemetry (Part 1)</h3>
-            <p>Merge API not reachable at <code>{api_base}</code>.</p>
-            <p class="mono" style="opacity:.85">{err or "unknown error"}</p>
-            <p class="mono">Start: <code>cd part2/mqtt_merge && uvicorn main:app --port 8000</code>
-            or Docker Compose in that folder.</p>
+            <p>Merge API not reachable at <code>{html_escape(api_base)}</code>.</p>
+            <p class="mono" style="opacity:.85">{html_escape(err or "unknown error")}</p>
+            <p class="mono">Start the merge service on port 8000, or use Docker Compose in part2/mqtt_merge.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -401,7 +639,7 @@ def render_mqtt_rail(api_base: str) -> None:
         f"""
         <div class="mqtt-rail">
         <h3>Live telemetry (Part 1)</h3>
-        <p>API <strong>{api_base}</strong> · MQTT <strong>{health.get("mqtt_connected")}</strong> ·
+        <p>API <strong>{html_escape(api_base)}</strong> · MQTT <strong>{health.get("mqtt_connected")}</strong> ·
         status <strong>{health.get("status")}</strong></p>
         <p class="mono">readings: {agg.get("total_readings", 0)} · anomalies: {h_ac} · rate: {h_rate:.2%}</p>
         </div>
@@ -412,7 +650,7 @@ def render_mqtt_rail(api_base: str) -> None:
     if not recent and health.get("mqtt_connected") and agg.get("total_readings", 0) == 0:
         st.info(
             "Merge API is up and MQTT is connected, but the database has no readings yet. "
-            "Ensure Wokwi publishes **valid JSON** to **telemetry/ADWYA-CHILLER-01** (matches merge subscription). "
+            "Ensure Wokwi publishes valid JSON to telemetry/ADWYA-CHILLER-01 (matches merge subscription). "
             "After changing merge settings, restart the merge service once."
         )
 
@@ -432,10 +670,10 @@ def render_mqtt_rail(api_base: str) -> None:
                     "received_at": row.get("received_at"),
                 }
             )
-        st.dataframe(pd.DataFrame(tbl), use_container_width=True, hide_index=True)
+        render_html_table(pd.DataFrame(tbl))
     elif agg.get("total_readings", 0) > 0:
         st.warning(
-            f"Database reports {agg.get('total_readings')} readings but `/unified/iot` returned no rows "
+            f"Database reports {agg.get('total_readings')} readings but /unified/iot returned no rows "
             "— try restarting the merge API (SQLite query / serialization issue)."
         )
 
@@ -447,11 +685,18 @@ def mqtt_rail_auto_refresh() -> None:
 
 
 def main() -> None:
+    try:
+        from energy_extract.env_loader import load_all_dotenv
+
+        load_all_dotenv()
+    except Exception:
+        pass
+
     st.set_page_config(page_title="Eco-Edge · Unified view", layout="wide", initial_sidebar_state="expanded")
     inject_css()
 
     st.markdown("# Unified statement — documents & edge")
-    st.caption("Warm-field layout matching the hybrid mock. Extraction: `out/*.json`. Live strip: MQTT merge API.")
+    st.caption("Warm-field layout matching the hybrid mock. Documents from disk + drag-and-drop OCR + live MQTT.")
 
     with st.sidebar:
         st.markdown("### Settings")
@@ -462,7 +707,7 @@ def main() -> None:
         api_base = st.text_input(
             "MQTT merge API base URL (HTTP)",
             value=api_default,
-            help="FastAPI merge service (port 8000), not MQTT 1883. Run: cd part2/mqtt_merge && uvicorn main:app --port 8000",
+            help="FastAPI merge service (port 8000), not MQTT 1883.",
         )
         st.session_state["mqtt_api_base"] = api_base
         st.checkbox(
@@ -471,25 +716,26 @@ def main() -> None:
             key="mqtt_live_autorefresh",
         )
         st.caption(
-            "Wokwi → broker.hivemq.com · topic **telemetry/ADWYA-CHILLER-01** "
-            "(merge service subscribes to that topic only — avoids garbage on `telemetry/#`)."
+            "Wokwi → broker.hivemq.com · topic telemetry/ADWYA-CHILLER-01 "
+            "(merge service subscribes only to that topic)."
         )
         show_audit = st.checkbox("Show extraction audit (JSONL)", value=True)
-        st.divider()
-        st.caption("Schema: `energy_extract.models.ExtractedDocument` · `part2/explain.md`")
 
     docs, load_errors = load_extracted_documents(out_dir)
 
     col_main, col_rail = st.columns([2.15, 1], gap="large")
 
     with col_main:
+        # NEW: drag-and-drop real-time OCR section, before the disk-loaded list.
+        render_ocr_upload_section()
+
         if load_errors:
             with st.expander("Skipped JSON files (validation / parse)", expanded=False):
                 for name, errmsg in load_errors:
                     st.text(f"{name}: {errmsg}")
 
         if not docs:
-            st.error("No valid documents. Check the directory or run the extraction CLI.")
+            st.error("No valid documents on disk yet. Use the upload box above, or run the extraction CLI.")
         else:
             summary = []
             for d in docs:
@@ -502,26 +748,27 @@ def main() -> None:
                     }
                 )
             st.subheader("Loaded files")
-            st.dataframe(pd.DataFrame(summary), use_container_width=True, hide_index=True)
+            render_html_table(pd.DataFrame(summary))
 
         if show_audit:
             audit_path = out_dir / "extraction_audit.jsonl"
             if audit_path.is_file():
                 tail = parse_audit_tail(audit_path, max_lines=120)
                 latest = audit_latest_per_source(tail)
-                st.subheader("Latest run per source (audit)")
-                rows = []
-                for r in latest:
-                    rows.append(
-                        {
-                            "File": r.get("source_file", "—"),
-                            "OK": "\u2713" if r.get("ok") else "\u2717",
-                            "Error": (r.get("error") or "")[:48],
-                            "Time": r.get("ts", "—"),
-                            "Output JSON": Path(str(r.get("output_json", ""))).name if r.get("output_json") else "—",
-                        }
-                    )
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+                if latest:
+                    st.subheader("Latest run per source (audit)")
+                    rows = []
+                    for r in latest:
+                        rows.append(
+                            {
+                                "File": r.get("source_file", "—"),
+                                "OK": "\u2713" if r.get("ok") else "\u2717",
+                                "Error": (r.get("error") or "")[:48],
+                                "Time": r.get("ts", "—"),
+                                "Output JSON": Path(str(r.get("output_json", ""))).name if r.get("output_json") else "—",
+                            }
+                        )
+                    render_html_table(pd.DataFrame(rows))
 
         st.divider()
         for doc in sorted(docs, key=sort_key_doc):

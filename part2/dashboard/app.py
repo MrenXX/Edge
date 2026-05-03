@@ -15,6 +15,7 @@ from html import escape as html_escape
 from io import StringIO
 from pathlib import Path
 
+import altair as alt
 import pandas as pd
 import requests
 import streamlit as st
@@ -292,6 +293,14 @@ def inject_css() -> None:
             color: #282A3A !important;
           }
 
+          /* Native Streamlit charts — paper frame like extract tables */
+          [data-testid="stChart"] {
+            border: 1px solid rgba(40,42,58,0.28) !important;
+            border-radius: 4px !important;
+            background: rgba(255,255,255,0.22) !important;
+            padding: 0.35rem !important;
+          }
+
           .mqtt-rail {
             background: #282A3A;
             color: #BBAB8C;
@@ -381,6 +390,71 @@ def sort_key_doc(doc) -> tuple[int, str]:
         "unknown": 9,
     }
     return (order.get(doc.document_family, 5), doc.source_file or "")
+
+
+def _parse_period_mmyyyy(label: str | None) -> tuple[int, int] | None:
+    """Return (year, month) for sorting from labels like 05/2025; None if unknown."""
+    if not label or not isinstance(label, str):
+        return None
+    s = label.strip()
+    for sep in ("/", "-", "."):
+        if sep not in s:
+            continue
+        parts = [p.strip() for p in s.split(sep) if p.strip()]
+        if len(parts) != 2:
+            continue
+        try:
+            a, b = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+        if 1 <= a <= 12 and 2000 <= b <= 2100:
+            return (b, a)
+        if 1 <= b <= 12 and 2000 <= a <= 2100:
+            return (a, b)
+    return None
+
+
+def maybe_render_gas_cost_over_time(docs: list) -> None:
+    """Simple TTC trend for gas STEG bills (period_label on disk JSON)."""
+    agg: dict[tuple[int, int], float] = {}
+    for d in docs:
+        if getattr(d, "document_family", "") != "gas_steg" or not getattr(d, "gas", None):
+            continue
+        g = d.gas
+        pl = g.period_label or getattr(d, "period_label", None)
+        key = _parse_period_mmyyyy(pl)
+        ttc = g.total_net_a_payer_ttc_tnd
+        if key is None or ttc is None:
+            continue
+        try:
+            agg[key] = agg.get(key, 0.0) + float(ttc)
+        except (TypeError, ValueError):
+            continue
+    if not agg:
+        return
+    ordered = sorted(agg.items())
+    df = pd.DataFrame(
+        [{"Période (facture)": f"{m:02d}/{y}", "TTC (TND)": v} for (y, m), v in ordered]
+    )
+    st.subheader("Gaz STEG — net à payer (TTC) dans le temps")
+    st.caption("Périodes d’après `period_label` des JSON chargés ; même mois additionné.")
+    periods = df["Période (facture)"].tolist()
+    line_color = "#9B2C2C"
+    base = alt.Chart(df).encode(
+        x=alt.X("Période (facture):O", sort=periods, title="Période (facture)"),
+        y=alt.Y("TTC (TND):Q", title="TTC (TND)"),
+    )
+    chart = (
+        base.mark_line(color=line_color, strokeWidth=2.75, interpolate="monotone")
+        + base.mark_point(
+            color=line_color,
+            filled=True,
+            size=70,
+            stroke="#FFFDF8",
+            strokeWidth=1.5,
+        )
+    ).properties(height=280)
+    st.altair_chart(chart, use_container_width=True)
 
 
 def df_electricity_meter(m) -> pd.DataFrame:
@@ -1089,6 +1163,8 @@ def main() -> None:
                             st.caption(str(roll["co2_method_note"]))
                         if roll.get("method_note"):
                             st.caption(str(roll["method_note"]))
+
+                maybe_render_gas_cost_over_time(docs)
 
             if show_audit:
                 audit_path = out_dir / "extraction_audit.jsonl"

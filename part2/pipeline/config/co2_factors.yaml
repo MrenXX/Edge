@@ -1,0 +1,19 @@
+# Indicative kg CO2eq per kWh for demo dashboards (plan_part2 §10–11, cahier CO2).
+# Replace with official STEG / national inventory factors when available.
+method_note: >-
+  Operational-style factors for pitch / dashboard only; not organizer ground truth.
+  Tri-gen CHP is not split between heat and electricity.
+
+factors:
+  grid_import:
+    kg_co2_per_kwh: 0.45
+    source: "Indicative grid intensity (TN / IEA class demo placeholder)"
+  grid_export_avoided:
+    kg_co2_per_kwh: 0.45
+    source: "Same order of magnitude as grid import for avoided-generation demo"
+  natural_gas_combustion:
+    kg_co2_per_kwh: 0.202
+    source: "IPCC 2006 guideline — natural gas stationary combustion (LHV basis)"
+  onsite_generation_proxy:
+    kg_co2_per_kwh: 0.202
+    source: "Demo proxy: treat onsite kWh like gas-fired kWh until CHP split exists"

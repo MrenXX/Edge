@@ -6,16 +6,19 @@ Adds: drag-and-drop real-time OCR via Gemini for ad-hoc bills / SCADA shots.
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import sys
 import tempfile
 from html import escape as html_escape
+from io import StringIO
 from pathlib import Path
 
 import pandas as pd
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 
 from io_documents import (
     audit_latest_per_source,
@@ -28,6 +31,8 @@ _PIPELINE = Path(__file__).resolve().parent.parent / "pipeline"
 _PART2_ROOT = _PIPELINE.parent
 if str(_PIPELINE) not in sys.path:
     sys.path.insert(0, str(_PIPELINE))
+if str(_PART2_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PART2_ROOT))
 
 # Load API keys before any pipeline import (Streamlit reruns this file often).
 def _bootstrap_env() -> None:
@@ -58,7 +63,13 @@ def _bootstrap_env() -> None:
 
 _bootstrap_env()
 
+from core.co2_engine import Co2Engine  # noqa: E402
 from core.conversion_engine import ConversionEngine  # noqa: E402
+
+try:
+    from api.unified_builder import build_normalized_rollups  # noqa: E402
+except ImportError:
+    build_normalized_rollups = None  # type: ignore[assignment]
 
 # Optional: real-time OCR uses google-genai + pymupdf (pipeline deps).
 # Wrap the import so the dashboard still loads even if the user only installed
@@ -305,6 +316,17 @@ def inject_css() -> None:
             margin-right: 6px;
             font-family: ui-monospace, monospace;
           }
+
+          /* Edge telemetry: anomaly rows */
+          .extract-table tbody tr.edge-anomaly-row td {
+            background: rgba(200, 60, 60, 0.22) !important;
+            border-color: rgba(140, 30, 30, 0.42) !important;
+            color: #3a1212 !important;
+            font-weight: 600;
+          }
+          .extract-table tbody tr.edge-anomaly-row:hover td {
+            background: rgba(200, 60, 60, 0.30) !important;
+          }
         </style>
         """,
         unsafe_allow_html=True,
@@ -384,6 +406,19 @@ def conversion_engine() -> ConversionEngine:
     return ConversionEngine()
 
 
+@st.cache_resource
+def co2_engine() -> Co2Engine:
+    return Co2Engine()
+
+
+def _meter_non_reactive_active_kwh_sum(m) -> float:
+    total = 0.0
+    for r in m.rows or []:
+        if r.delta_active_kwh is not None and not r.is_reactive:
+            total += float(r.delta_active_kwh)
+    return total
+
+
 def render_gas_block(gas) -> None:
     engine = conversion_engine()
     kwh_r = engine.gas_bill_to_kwh(
@@ -420,6 +455,27 @@ def render_gas_block(gas) -> None:
             columns=["Champ", "Valeur"],
         )
         render_html_table(amounts_df)
+    c_co2 = co2_engine()
+    if kwh_r and kwh_r.converted_value_kwh is not None:
+        try:
+            gk = float(kwh_r.converted_value_kwh)
+        except (TypeError, ValueError):
+            gk = 0.0
+        if gk > 0:
+            g_co2 = c_co2.from_gas_kwh(gk)
+            if g_co2:
+                st.markdown("#### CO₂ gaz (indicatif)")
+                co2_gas_df = pd.DataFrame(
+                    [
+                        ["Émissions approx. (kg CO₂eq)", fmt_num(g_co2.kg_co2, 1)],
+                        ["Facteur (kg/kWh)", f"{g_co2.kg_co2_per_kwh:.4f}".replace(".", ",")],
+                        ["Source facteur", g_co2.source],
+                    ],
+                    columns=["Indicateur", "Valeur"],
+                )
+                render_html_table(co2_gas_df)
+    if c_co2.method_note:
+        st.caption(c_co2.method_note)
     if (
         gas.th_total is not None
         and gas.nm3_delta is not None
@@ -497,6 +553,8 @@ def render_document(doc) -> None:
 
     if doc.electricity_meters:
         st.markdown("#### Électricité · compteurs")
+        ce = co2_engine()
+        co2_note_shown = False
         for m in doc.electricity_meters:
             ctr = m.ctr_number or "—"
             st.markdown(
@@ -505,6 +563,40 @@ def render_document(doc) -> None:
                 unsafe_allow_html=True,
             )
             render_html_table(df_electricity_meter(m))
+            kwh_net = _meter_non_reactive_active_kwh_sum(m)
+            est = ce.from_meter_role_kwh(kwh_net, m.meter_role)
+            if est and kwh_net > 0:
+                tonnes = est.kg_co2 / 1000.0
+                role = (m.meter_role or "").strip()
+                if role == "grid_injection":
+                    st.markdown(
+                        f"*CO₂ **évité** (ordre de grandeur, injection) : **{fmt_num(tonnes, 3)}** t équ.*"
+                    )
+                    label_kg = "CO₂ évité approx. (kg CO₂eq)"
+                elif role == "onsite_generation":
+                    st.markdown(
+                        f"*CO₂ **associé** (proxy site / tri-gén.) : **{fmt_num(tonnes, 3)}** t équ.*"
+                    )
+                    label_kg = "CO₂ associé proxy (kg CO₂eq)"
+                else:
+                    st.markdown(
+                        f"*CO₂ **associé** à l'achat réseau (indicatif) : **{fmt_num(tonnes, 3)}** t équ.*"
+                    )
+                    label_kg = "CO₂ associé approx. (kg CO₂eq)"
+                co2_el_df = pd.DataFrame(
+                    [
+                        ["Σ Δ kWh actif (hors réactif)", fmt_num(kwh_net, 0)],
+                        [label_kg, fmt_num(est.kg_co2, 1)],
+                        ["Facteur (kg/kWh)", f"{est.kg_co2_per_kwh:.4f}".replace(".", ",")],
+                        ["Clé facteur", est.factor_key],
+                        ["Source facteur", est.source],
+                    ],
+                    columns=["Indicateur", "Valeur"],
+                )
+                render_html_table(co2_el_df)
+                if ce.method_note and not co2_note_shown:
+                    st.caption(ce.method_note)
+                    co2_note_shown = True
 
     if doc.gas:
         st.markdown("#### Gaz")
@@ -642,7 +734,121 @@ def _accel_norm_float(sensors: dict) -> float | None:
         return None
 
 
-def render_mqtt_rail(api_base: str) -> None:
+def _edge_anomaly_truthy(val: object) -> bool:
+    if val is True:
+        return True
+    if val is False or val is None:
+        return False
+    if isinstance(val, (int, float)) and int(val) == 1:
+        return True
+    if isinstance(val, str) and val.strip().lower() in ("1", "true", "yes"):
+        return True
+    return False
+
+
+def _reading_stable_id(row: dict) -> str:
+    rid = row.get("id")
+    if rid is not None:
+        return str(rid)
+    return f"{row.get('device_id')}|{row.get('timestamp')}|{row.get('received_at')}"
+
+
+def _inject_anomaly_notifications(alerts: list[dict]) -> None:
+    if not alerts:
+        return
+    payload: list[dict[str, str]] = []
+    for row in alerts:
+        dev = row.get("device_id") if row.get("device_id") is not None else "?"
+        ts = row.get("timestamp") if row.get("timestamp") is not None else row.get("received_at") or ""
+        payload.append(
+            {
+                "title": f"Edge anomaly · {dev}",
+                "body": f"{ts} — open Edge Telemetry tab for details.",
+                "tag": f"edge-anom-{_reading_stable_id(row)}",
+            }
+        )
+    alerts_json = json.dumps(payload)
+    components.html(
+        f"""
+<script>
+const __edgeAlerts = {alerts_json};
+(function () {{
+  const root = window.parent ?? window;
+  if (!root.Notification) return;
+  function showOne(a) {{
+    try {{
+      const opts = {{ body: a.body, tag: a.tag }};
+      if (root.Notification.permission === "granted") {{
+        new root.Notification(a.title, opts);
+      }} else if (root.Notification.permission === "default") {{
+        root.Notification.requestPermission().then(function (p) {{
+          if (p === "granted") new root.Notification(a.title, opts);
+        }});
+      }}
+    }} catch (e) {{}}
+  }}
+  __edgeAlerts.forEach(showOne);
+}})();
+</script>
+        """,
+        height=0,
+    )
+
+
+def maybe_notify_new_edge_anomalies(recent: list) -> None:
+    """Browser desktop notifications for new edge_anomaly rows (runs from sidebar rail on any main tab)."""
+    if not recent:
+        return
+    notified: set[str] = st.session_state.setdefault("edge_anomaly_notified_ids", set())
+    boot = st.session_state.setdefault("_edge_anomaly_notify_bootstrapped", False)
+    ids_now = {_reading_stable_id(r) for r in recent if _edge_anomaly_truthy(r.get("edge_anomaly"))}
+    if not boot:
+        notified.update(ids_now)
+        st.session_state["_edge_anomaly_notify_bootstrapped"] = True
+        return
+    fresh: list[dict] = []
+    for row in recent:
+        if not _edge_anomaly_truthy(row.get("edge_anomaly")):
+            continue
+        sid = _reading_stable_id(row)
+        if sid in notified:
+            continue
+        notified.add(sid)
+        fresh.append(row)
+    if fresh:
+        _inject_anomaly_notifications(fresh)
+        for row in fresh:
+            st.toast(
+                f"Edge anomaly · {row.get('device_id') or '?'} — see Edge Telemetry",
+                icon="🔺",
+            )
+
+
+def render_telemetry_readings_table(df: pd.DataFrame, row_anomaly: list[bool]) -> None:
+    if df.empty:
+        st.caption("— aucune ligne —")
+        return
+    if len(row_anomaly) != len(df):
+        render_html_table(df)
+        return
+    head_cells = "".join(f"<th>{html_escape(str(c))}</th>" for c in df.columns)
+    body_rows: list[str] = []
+    for (_, row), is_anom in zip(df.iterrows(), row_anomaly, strict=True):
+        tr_cls = ' class="edge-anomaly-row"' if is_anom else ""
+        cells = "".join(
+            f"<td>{html_escape('' if pd.isna(v) else str(v))}</td>" for v in row.tolist()
+        )
+        body_rows.append(f"<tr{tr_cls}>{cells}</tr>")
+    html = (
+        '<table class="extract-table">'
+        f"<thead><tr>{head_cells}</tr></thead>"
+        f"<tbody>{''.join(body_rows)}</tbody>"
+        "</table>"
+    )
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def render_mqtt_summary(api_base: str) -> None:
     data, err = fetch_iot_bundle(api_base)
     if err or not data:
         st.markdown(
@@ -684,12 +890,67 @@ def render_mqtt_rail(api_base: str) -> None:
             "Ensure Wokwi publishes valid JSON to telemetry/ADWYA-CHILLER-01 (matches merge subscription). "
             "After changing merge settings, restart the merge service once."
         )
+    elif recent:
+        maybe_notify_new_edge_anomalies(recent)
+        st.caption(
+            f"{len(recent)} recent messages — open the **Edge Telemetry** tab for the full table and CSV export."
+        )
+    elif agg.get("total_readings", 0) > 0:
+        st.warning(
+            f"Database reports {agg.get('total_readings')} readings but /unified/iot returned no rows "
+            "— try restarting the merge API (SQLite query / serialization issue)."
+        )
+
+
+def render_telemetry_tab(api_base: str) -> None:
+    data, err = fetch_iot_bundle(api_base)
+    if err or not data:
+        st.error(f"Merge API not reachable at {api_base}: {err}")
+        return
+
+    health = data["health"]
+    uni = data["unified"]
+    agg = uni.get("aggregates") or {}
+    recent = uni.get("recent_readings") or []
+
+    h_ac = int(health.get("anomaly_count") or agg.get("anomaly_count") or 0)
+    h_rate = float(health.get("anomaly_rate") if health.get("anomaly_rate") is not None else agg.get("anomaly_rate") or 0.0)
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("MQTT connected", str(health.get("mqtt_connected")))
+    with c2:
+        st.metric("Total readings", fmt_num(agg.get("total_readings", 0)))
+    with c3:
+        st.metric("Anomalies", fmt_num(h_ac))
+    with c4:
+        st.metric("Anomaly rate", f"{h_rate:.2%}")
+
+    st.divider()
+
+    if not recent and health.get("mqtt_connected") and agg.get("total_readings", 0) == 0:
+        st.info(
+            "Merge API is up and MQTT is connected, but the database has no readings yet. "
+            "Ensure Wokwi publishes valid JSON to telemetry/ADWYA-CHILLER-01 (matches merge subscription). "
+            "After changing merge settings, restart the merge service once."
+        )
+        return
+
+    if not recent and agg.get("total_readings", 0) > 0:
+        st.warning(
+            f"Database reports {agg.get('total_readings')} readings but /unified/iot returned no rows "
+            "— try restarting the merge API (SQLite query / serialization issue)."
+        )
+        return
 
     if recent:
         st.subheader("Recent messages (newest first)")
-        tbl = []
-        for row in recent[:25]:
+        tbl: list[dict] = []
+        row_anomaly: list[bool] = []
+        for row in recent[:50]:
             sns = row.get("sensors") or {}
+            is_anom = _edge_anomaly_truthy(row.get("edge_anomaly"))
+            row_anomaly.append(is_anom)
             tbl.append(
                 {
                     "id": row.get("id"),
@@ -701,18 +962,30 @@ def render_mqtt_rail(api_base: str) -> None:
                     "received_at": row.get("received_at"),
                 }
             )
-        render_html_table(pd.DataFrame(tbl))
-    elif agg.get("total_readings", 0) > 0:
-        st.warning(
-            f"Database reports {agg.get('total_readings')} readings but /unified/iot returned no rows "
-            "— try restarting the merge API (SQLite query / serialization issue)."
-        )
+        df = pd.DataFrame(tbl)
+        if not df.empty:
+            csv_buffer = StringIO()
+            df.to_csv(csv_buffer, index=False)
+            st.download_button(
+                label="Export to CSV",
+                data=csv_buffer.getvalue().encode("utf-8"),
+                file_name="edge_telemetry.csv",
+                mime="text/csv",
+                key="telemetry_csv_download",
+            )
+        render_telemetry_readings_table(df, row_anomaly)
 
 
 @st.fragment(run_every=4.0)
-def mqtt_rail_auto_refresh() -> None:
+def mqtt_summary_auto_refresh() -> None:
     base = str(st.session_state.get("mqtt_api_base") or "http://127.0.0.1:8000")
-    render_mqtt_rail(base)
+    render_mqtt_summary(base)
+
+
+@st.fragment(run_every=4.0)
+def mqtt_telemetry_auto_refresh() -> None:
+    base = str(st.session_state.get("mqtt_api_base") or "http://127.0.0.1:8000")
+    render_telemetry_tab(base)
 
 
 def main() -> None:
@@ -757,59 +1030,101 @@ def main() -> None:
     col_main, col_rail = st.columns([2.15, 1], gap="large")
 
     with col_main:
-        # NEW: drag-and-drop real-time OCR section, before the disk-loaded list.
-        render_ocr_upload_section()
+        tab_docs, tab_telemetry = st.tabs(["Documents", "Edge Telemetry"])
 
-        if load_errors:
-            with st.expander("Skipped JSON files (validation / parse)", expanded=False):
-                for name, errmsg in load_errors:
-                    st.text(f"{name}: {errmsg}")
+        with tab_docs:
+            render_ocr_upload_section()
 
-        if not docs:
-            st.error("No valid documents on disk yet. Use the upload box above, or run the extraction CLI.")
-        else:
-            summary = []
-            for d in docs:
-                summary.append(
-                    {
-                        "File": d.source_file,
-                        "Family": family_label(d.document_family),
-                        "Period": d.period_label or "—",
-                        "Confidence": f"{d.confidence_0_1:.0%}" if d.confidence_0_1 is not None else "—",
-                    }
-                )
-            st.subheader("Loaded files")
-            render_html_table(pd.DataFrame(summary))
+            if load_errors:
+                with st.expander("Skipped JSON files (validation / parse)", expanded=False):
+                    for name, errmsg in load_errors:
+                        st.text(f"{name}: {errmsg}")
 
-        if show_audit:
-            audit_path = out_dir / "extraction_audit.jsonl"
-            if audit_path.is_file():
-                tail = parse_audit_tail(audit_path, max_lines=120)
-                latest = audit_latest_per_source(tail)
-                if latest:
-                    st.subheader("Latest run per source (audit)")
-                    rows = []
-                    for r in latest:
-                        rows.append(
-                            {
-                                "File": r.get("source_file", "—"),
-                                "OK": "\u2713" if r.get("ok") else "\u2717",
-                                "Error": (r.get("error") or "")[:48],
-                                "Time": r.get("ts", "—"),
-                                "Output JSON": Path(str(r.get("output_json", ""))).name if r.get("output_json") else "—",
-                            }
+            if not docs:
+                st.error("No valid documents on disk yet. Use the upload box above, or run the extraction CLI.")
+            else:
+                summary = []
+                for d in docs:
+                    summary.append(
+                        {
+                            "File": d.source_file,
+                            "Family": family_label(d.document_family),
+                            "Period": d.period_label or "—",
+                            "Confidence": f"{d.confidence_0_1:.0%}" if d.confidence_0_1 is not None else "—",
+                        }
+                    )
+                st.subheader("Loaded files")
+                render_html_table(pd.DataFrame(summary))
+                if build_normalized_rollups is not None:
+                    roll = build_normalized_rollups(docs)
+                    co2blk = roll.get("co2_estimates_kg") or {}
+                    synth: list[list[str]] = []
+                    gk = roll.get("gas_bill_kwh_total")
+                    if gk is not None:
+                        synth.append(["Énergie gaz (kWh canoniques, Σ factures)", fmt_num(float(gk), 0)])
+                    ek = roll.get("electricity_delta_active_kwh_sum")
+                    if ek is not None:
+                        synth.append(["Σ Δ kWh actif élec. (hors réactif)", fmt_num(float(ek), 0)])
+                    if co2blk.get("natural_gas_from_bills") is not None:
+                        synth.append(["CO₂ gaz · kg CO₂eq (indicatif)", fmt_num(float(co2blk["natural_gas_from_bills"]), 0)])
+                    if co2blk.get("electricity_grid_import") is not None:
+                        synth.append(
+                            ["CO₂ élec. achat réseau · kg CO₂eq", fmt_num(float(co2blk["electricity_grid_import"]), 0)]
                         )
-                    render_html_table(pd.DataFrame(rows))
+                    if co2blk.get("electricity_grid_export_avoided") is not None:
+                        synth.append(
+                            [
+                                "CO₂ élec. évité (injection) · kg CO₂eq",
+                                fmt_num(float(co2blk["electricity_grid_export_avoided"]), 0),
+                            ]
+                        )
+                    if co2blk.get("electricity_onsite_proxy") is not None:
+                        synth.append(
+                            ["CO₂ élec. site (proxy) · kg CO₂eq", fmt_num(float(co2blk["electricity_onsite_proxy"]), 0)]
+                        )
+                    if synth:
+                        st.subheader("Synthèse énergie / CO₂ (disque)")
+                        render_html_table(pd.DataFrame(synth, columns=["Indicateur", "Valeur"]))
+                        if roll.get("co2_method_note"):
+                            st.caption(str(roll["co2_method_note"]))
+                        if roll.get("method_note"):
+                            st.caption(str(roll["method_note"]))
 
-        st.divider()
-        for doc in sorted(docs, key=sort_key_doc):
-            render_document(doc)
+            if show_audit:
+                audit_path = out_dir / "extraction_audit.jsonl"
+                if audit_path.is_file():
+                    tail = parse_audit_tail(audit_path, max_lines=120)
+                    latest = audit_latest_per_source(tail)
+                    if latest:
+                        st.subheader("Latest run per source (audit)")
+                        rows = []
+                        for r in latest:
+                            rows.append(
+                                {
+                                    "File": r.get("source_file", "—"),
+                                    "OK": "\u2713" if r.get("ok") else "\u2717",
+                                    "Error": (r.get("error") or "")[:48],
+                                    "Time": r.get("ts", "—"),
+                                    "Output JSON": Path(str(r.get("output_json", ""))).name if r.get("output_json") else "—",
+                                }
+                            )
+                        render_html_table(pd.DataFrame(rows))
+
+            st.divider()
+            for doc in sorted(docs, key=sort_key_doc):
+                render_document(doc)
+
+        with tab_telemetry:
+            if st.session_state.get("mqtt_live_autorefresh", True):
+                mqtt_telemetry_auto_refresh()
+            else:
+                render_telemetry_tab(str(st.session_state.get("mqtt_api_base") or api_base))
 
     with col_rail:
         if st.session_state.get("mqtt_live_autorefresh", True):
-            mqtt_rail_auto_refresh()
+            mqtt_summary_auto_refresh()
         else:
-            render_mqtt_rail(str(st.session_state.get("mqtt_api_base") or api_base))
+            render_mqtt_summary(str(st.session_state.get("mqtt_api_base") or api_base))
 
 
 if __name__ == "__main__":

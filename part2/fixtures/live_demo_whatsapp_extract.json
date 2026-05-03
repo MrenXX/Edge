@@ -1,0 +1,25 @@
+{
+  "source_file": "WhatsApp Image 2026-04-27 at 21.39.25 (51).jpeg",
+  "document_family": "gas_steg",
+  "supplier": "STEG",
+  "site_name": "SOCIETE ADWYA",
+  "period_label": "05/2024",
+  "period_start": null,
+  "period_end": null,
+  "confidence_0_1": 0.95,
+  "electricity_meters": [],
+  "gas": {
+    "nm3_delta": 176850.0,
+    "pcs": 10.079,
+    "th_total": 1782471.0,
+    "debit_souscrit_th_h": 6000.0,
+    "total_cost_ht_tnd": 110156.708,
+    "total_net_a_payer_ttc_tnd": 133600.172,
+    "period_label": "05/2024"
+  },
+  "water": null,
+  "scada_alarms": [],
+  "raw_warnings": [],
+  "parser_path": "gemini_vision",
+  "prompt_version": "gemini_vision_v1"
+}

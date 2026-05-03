@@ -166,6 +166,18 @@ def _response_text(response: object) -> str:
     raise RuntimeError("Gemini returned empty text.")
 
 
+def _max_api_attempts() -> int:
+    if os.environ.get("GEMINI_QUICK", "").strip().lower() in ("1", "true", "yes"):
+        return 2
+    return int(os.environ.get("GEMINI_MAX_ATTEMPTS", "8"))
+
+
+def _client_http_options() -> types.HttpOptions:
+    # Milliseconds; prevents indefinite hangs on bad networks.
+    ms = int(os.environ.get("GEMINI_HTTP_TIMEOUT_MS", "120000"))
+    return types.HttpOptions(timeout=ms)
+
+
 def extract_from_inline_images(
     *,
     source_file: str,
@@ -176,8 +188,9 @@ def extract_from_inline_images(
     if not images:
         raise ValueError("No images provided")
 
-    client = genai.Client(api_key=_api_key())
+    client = genai.Client(api_key=_api_key(), http_options=_client_http_options())
     model_id = model_name or _default_model_id()
+    max_attempts = _max_api_attempts()
 
     user_text = (
         "Extract structured data from these document page images into JSON.\n"
@@ -196,7 +209,7 @@ def extract_from_inline_images(
             response_mime_type="application/json",
         )
         last_err: Exception | None = None
-        for attempt in range(8):
+        for attempt in range(max_attempts):
             try:
                 response = client.models.generate_content(
                     model=model_id,
@@ -229,7 +242,7 @@ def extract_from_inline_images(
             temperature=0.1,
         )
         last_err: Exception | None = None
-        for attempt in range(8):
+        for attempt in range(max_attempts):
             try:
                 response = client.models.generate_content(
                     model=model_id,

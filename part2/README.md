@@ -44,6 +44,7 @@ In the dashboard **sidebar**, keep the **MQTT merge** base URL at **`http://127.
 | [`plan_part2.md`](plan_part2.md) | Architecture, rubric, checklist vs cahier |
 | [`explain.md`](explain.md) | JSON contract for the UI, `out/` layout |
 | [`example_images_data_factures_et_diverses.md`](example_images_data_factures_et_diverses.md) | Sample bill / SCADA shapes for prompts |
+| [`LIVE_DEMO.md`](LIVE_DEMO.md) | **Live demo path** (WhatsApp JPEG) + CLI smoke + quota/model notes |
 | `dashboard/` | Streamlit (disk JSON + **drag-and-drop Gemini OCR**); install `dashboard/requirements.txt` for live upload |
 | `api/` | Unified FastAPI: `/unified`, `/documents`, `/ingest`, `/metrics`, `/docs` |
 | `mqtt_merge/` | FastAPI + paho-mqtt + SQLite (telemetry persistence) |

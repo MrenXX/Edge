@@ -7,6 +7,7 @@ Adds: drag-and-drop real-time OCR via Gemini for ad-hoc bills / SCADA shots.
 from __future__ import annotations
 
 import math
+import os
 import sys
 import tempfile
 from html import escape as html_escape
@@ -24,8 +25,38 @@ from io_documents import (
 )
 
 _PIPELINE = Path(__file__).resolve().parent.parent / "pipeline"
+_PART2_ROOT = _PIPELINE.parent
 if str(_PIPELINE) not in sys.path:
     sys.path.insert(0, str(_PIPELINE))
+
+# Load API keys before any pipeline import (Streamlit reruns this file often).
+def _bootstrap_env() -> None:
+    paths = (
+        _PART2_ROOT.parent / ".env",
+        _PIPELINE / ".env",
+        _PART2_ROOT / ".env",
+    )
+    try:
+        from dotenv import load_dotenv
+
+        for _env_path in paths:
+            if _env_path.is_file():
+                load_dotenv(_env_path, override=True)
+    except ImportError:
+        for _env_path in paths:
+            if not _env_path.is_file():
+                continue
+            for line in _env_path.read_text(encoding="utf-8").splitlines():
+                s = line.strip()
+                if not s or s.startswith("#") or "=" not in s:
+                    continue
+                key, _, val = s.partition("=")
+                key, val = key.strip(), val.strip().strip('"').strip("'")
+                if key and val:
+                    os.environ[key] = val
+
+
+_bootstrap_env()
 
 from core.conversion_engine import ConversionEngine  # noqa: E402
 

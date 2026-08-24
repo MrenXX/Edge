@@ -48,7 +48,7 @@ Default in `sketch.ino`:
 
 - `MQTT_HOST` = `broker.hivemq.com` (anonymous MQTT, good for “does it publish?”).
 
-That’s **TCP port 1883, cleartext MQTT** — not MQTTS, not HTTPS. Fine for the hackathon smoke test; TLS was skipped on purpose.
+That’s **TCP port 1883, cleartext MQTT** — not MQTTS, not HTTPS. Fine for a smoke test; TLS was skipped on purpose.
 
 **To hit your own Mosquitto:**
 

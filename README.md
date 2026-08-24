@@ -54,7 +54,7 @@ On real hardware, use the same pins and set your WiFi SSID/password and MQTT hos
 |--|--|
 | WiFi (sim) | `Wokwi-GUEST` / empty password |
 | Broker | `broker.hivemq.com` : `1883` |
-| Topic | `telemetry/ADWYA-CHILLER-01` |
+| Topic | `telemetry/CHILLER-01` |
 
 Traffic is plain MQTT (no TLS). For your own LAN broker use the Wokwi [Private IoT Gateway](https://docs.wokwi.com/guides/esp32-wifi) and change `MQTT_HOST` in the sketch.
 

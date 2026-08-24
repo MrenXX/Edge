@@ -1,5 +1,5 @@
 /*
-  Eco-Edge — INSAT Re·Tech Fusion, Part 1
+  Edge — ESP32 industrial telemetry node
   Wokwi: MPU6050 @ 0x69, DS1307, pot on 34 as rough "amps", LEDs 4 (green) / 2 (red).
   MQTT JSON every ~2s; ring buffer if broker drops; TCP reset + MQTT backoff on failures.
 */
@@ -39,8 +39,8 @@ static const char *WIFI_PASSWORD = "";
 
 static const char *MQTT_HOST = "broker.hivemq.com";
 static const uint16_t MQTT_PORT = 1883;
-static const char *MQTT_TOPIC = "telemetry/ADWYA-CHILLER-01";
-static const char *DEVICE_ID = "ADWYA-CHILLER-01";
+static const char *MQTT_TOPIC = "telemetry/CHILLER-01";
+static const char *DEVICE_ID = "CHILLER-01";
 
 static const unsigned long PUBLISH_INTERVAL_MS = 2000;
 static const float POT_AMPS_MIN = 0.0f;
